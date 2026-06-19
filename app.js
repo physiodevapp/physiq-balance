@@ -67,7 +67,9 @@ let _cdTimer    = null;
 let _secsLeft   = 30;
 let _cdSecsLeft = COUNTDOWN_SECS;
 let _lastResult = null; // computed metrics for current test
-let _patient    = '';
+let _patient      = '';
+let _sessionDate  = '';
+let _sessionLabel = '';
 let _balanceResults = {}; // { testId: savedResult }
 let _sessionGen     = 0;
 let _sessionCleared = false;
@@ -116,6 +118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const session = await readSession();
   if (session) {
     _patient = session.patient || '';
+    _sessionDate = session.date || _todayStr();
     _balanceResults = session.balance || {};
     _applySessionToUI(session);
   }
@@ -157,6 +160,9 @@ function _updateSessionChip() {
   if (!btn) return;
   const hasSession = _patient || Object.keys(_balanceResults).length > 0;
   btn.classList.toggle('active', !!hasSession);
+  _sessionLabel = _patient
+    ? `${_patient} · ${_sessionDate || _todayStr()}`
+    : hasSession ? `Sesión · ${_sessionDate || _todayStr()}` : '';
 }
 
 let _patientDebounce = null;
@@ -169,8 +175,9 @@ function _onPatientInput(e) {
 }
 
 async function _persistPatient() {
+  _sessionDate = _todayStr();
   const gen = _sessionGen;
-  const session = await writeSession({ patient: _patient, date: _todayStr() });
+  const session = await writeSession({ patient: _patient, date: _sessionDate });
   if (_sessionGen !== gen) {
     await clearSession();
     return;
@@ -614,10 +621,11 @@ window.saveResult = async function () {
     metrics
   };
 
+  _sessionDate = _todayStr();
   const patch = { balance: _balanceResults };
   if (_patient) {
     patch.patient = _patient;
-    patch.date    = _todayStr();
+    patch.date    = _sessionDate;
   }
 
   const gen = _sessionGen;
@@ -643,9 +651,9 @@ window.saveResult = async function () {
 window.promptClearSession = function () {
   _hubWidgetHide();
   showConfirmBanner(
-    'Limpiar sesión',
-    'Se borrarán todos los resultados de balance guardados.',
-    'Limpiar',
+    'Sesión en curso',
+    `${_sessionLabel}<br>¿Borrar y empezar de nuevo?`,
+    'Borrar sesión',
     async () => {
       _hubWidgetShow();
       await _softReset(true);
@@ -658,6 +666,8 @@ async function _softReset(fullClear = false) {
   _sessionCleared = true;
   _balanceResults = {};
   _patient = '';
+  _sessionDate = '';
+  _sessionLabel = '';
 
   const inp = document.getElementById('patientInput');
   if (inp) inp.value = '';
@@ -686,7 +696,7 @@ window.promptSoftResetBalance = function () {
   _hubWidgetHide();
   showConfirmBanner(
     '↺ Borrar mediciones',
-    'Se eliminarán los resultados de balance. Los datos de otros satélites se conservarán.',
+    'Se eliminarán las mediciones de balance. Los datos de otros satélites se conservarán.',
     'Borrar',
     async () => {
       _hubWidgetShow();
@@ -728,8 +738,8 @@ function _hubWidgetShow() {
 // ── Confirm banner ────────────────────────────────────────────────────────────
 function showConfirmBanner(title, text, actionLabel, onConfirm) {
   const el = document.getElementById('confirmBanner');
-  document.getElementById('confirmTitle').textContent  = title;
-  document.getElementById('confirmText').textContent   = text;
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmText').innerHTML    = text;
   document.getElementById('confirmAction').textContent = actionLabel;
   el.hidden = false;
 
