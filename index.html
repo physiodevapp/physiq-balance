@@ -273,27 +273,13 @@
       gap: 20px;
     }
 
-    /* Patient row */
-    .patient-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: var(--surface);
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      padding: 0 14px;
-      height: 48px;
-    }
-
-    .patient-row svg { color: var(--text2); flex-shrink: 0; }
-
-    .patient-row input {
-      flex: 1;
-      font-size: 0.9rem;
-      color: var(--text);
-    }
-
-    .patient-row input::placeholder { color: var(--text2); }
+    /* Patient field */
+    .info-row { display: flex; gap: 10px; align-items: flex-end; }
+    .field { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+    .field-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; }
+    .field-input { background: var(--surface); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 9px 12px; font-family: 'DM Mono', monospace; font-size: 12px; outline: none; transition: border-color 0.2s; width: 100%; }
+    .field-input:focus { border-color: var(--accent); }
+    .field-input:-webkit-autofill, .field-input:-webkit-autofill:focus { -webkit-box-shadow: 0 0 0px 1000px var(--surface) inset; -webkit-text-fill-color: var(--text); transition: background-color 5000s ease-in-out 0s; }
 
     /* Sensor warning */
     .sensor-warning {
@@ -996,12 +982,11 @@
 <div id="view-home">
   <div class="home-body">
     <!-- Patient name -->
-    <div class="patient-row">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-        <circle cx="12" cy="7" r="4"/>
-      </svg>
-      <input id="patientInput" type="text" placeholder="Nombre del paciente (opcional)" autocomplete="off" spellcheck="false">
+    <div class="info-row">
+      <div class="field">
+        <label class="field-label" for="patientInput">Paciente</label>
+        <input class="field-input" id="patientInput" type="text" placeholder="Nombre (opcional)" autocomplete="off" spellcheck="false">
+      </div>
     </div>
 
     <!-- Sensor warning -->
