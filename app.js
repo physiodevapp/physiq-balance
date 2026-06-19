@@ -78,6 +78,8 @@ const _sessionCh = new BroadcastChannel('physiq-session');
 
 // ── DOM refs (set after DOMContentLoaded) ────────────────────────────────────
 let $viewHome, $viewSetup, $viewTesting, $countdownOverlay, $resultsOverlay;
+let _$headerLogo, _$headerBack, _$headerTest, _$headerRight;
+let _translateTimer = null;
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
@@ -98,6 +100,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (_) {
     document.body.classList.add('in-hub');
   }
+
+  // Header DOM refs
+  _$headerLogo    = document.getElementById('headerLogo');
+  _$headerBack    = document.getElementById('headerBack');
+  _$headerTest    = document.getElementById('headerTestInfo');
+  _$headerRight   = document.getElementById('headerRight');
 
   // Sensor check
   if (typeof DeviceMotionEvent === 'undefined') {
@@ -190,6 +198,17 @@ function _handleBC(e) {
   }
 }
 
+// ── Header state ─────────────────────────────────────────────────────────────
+function _updateHeader(name) {
+  const isHome    = name === 'home' || name === 'results';
+  const isSetup   = name === 'setup' || name === 'countdown';
+  const isTesting = name === 'testing';
+  if (_$headerLogo)  _$headerLogo.hidden  = !isHome;
+  if (_$headerRight) _$headerRight.hidden = !isHome;
+  if (_$headerBack)  _$headerBack.hidden  = !isSetup;
+  if (_$headerTest)  _$headerTest.hidden  = !(isSetup || isTesting);
+}
+
 // ── View routing ──────────────────────────────────────────────────────────────
 function _showView(name) {
   _phase = name === 'countdown' ? 'countdown' : name;
@@ -198,8 +217,7 @@ function _showView(name) {
   $viewTesting.hidden      = (name !== 'testing');
   $countdownOverlay.hidden = (name !== 'countdown');
   $resultsOverlay.hidden   = (name !== 'results');
-
-  // Hub widget hide during confirm banners is handled per call
+  _updateHeader(name);
 }
 
 // ── Home ──────────────────────────────────────────────────────────────────────
@@ -227,7 +245,6 @@ function _renderTestCards() {
 
     card.innerHTML = `
       <div class="card-top">
-        <div class="card-icon">${_stanceIcon(id)}</div>
         ${scoreHtml}
       </div>
       <div class="card-label">${t.label}</div>
@@ -269,7 +286,6 @@ function _openSetup(testId) {
   document.getElementById('setupIllustration').innerHTML = _stanceIllustration(t.stance);
 
   const startBtn = document.getElementById('startBtn');
-  startBtn.style.background = t.color;
   startBtn.disabled = false;
 
   _showView('setup');
@@ -305,6 +321,7 @@ function _stanceIllustration(stance) {
 }
 
 window.goBack = function () {
+  if (_cdTimer) { clearInterval(_cdTimer); _cdTimer = null; }
   _showView('home');
 };
 
@@ -356,8 +373,6 @@ function _beginTest() {
   _lastAccel = null;
   _secsLeft  = t.duration;
 
-  document.getElementById('testTitle').textContent    = t.label;
-  document.getElementById('testSubtitle').textContent = t.sublabel;
   document.getElementById('timerDisplay').textContent = _secsLeft;
   document.getElementById('stopBtn').style.background = '#ef4444';
 
@@ -616,6 +631,7 @@ window.saveResult = async function () {
   _lastResult = null;
   _renderTestCards();
   _updateSessionChip();
+  _updateResetBtn();
   _showView('home');
   _hubWidgetShow();
 };
@@ -645,6 +661,7 @@ async function _softReset(fullClear = false) {
 
   _renderTestCards();
   _updateSessionChip();
+  _updateResetBtn();
 
   if (fullClear) {
     await clearSession();
@@ -653,6 +670,49 @@ async function _softReset(fullClear = false) {
     _sessionCh.postMessage({ type: 'SESSION_BALANCE', balance: {} });
   }
 }
+
+// ── Reset button visibility ───────────────────────────────────────────────────
+function _updateResetBtn() {
+  const btn = document.getElementById('headerResetBtn');
+  if (!btn) return;
+  btn.style.display = Object.keys(_balanceResults).length > 0 ? '' : 'none';
+}
+
+// ── Soft reset (balance data only) ───────────────────────────────────────────
+window.promptSoftResetBalance = function () {
+  _hubWidgetHide();
+  showConfirmBanner(
+    '↺ Borrar mediciones',
+    'Se eliminarán los resultados de balance. Los datos de otros satélites se conservarán.',
+    'Borrar',
+    async () => {
+      _hubWidgetShow();
+      _balanceResults = {};
+      _renderTestCards();
+      _updateSessionChip();
+      _updateResetBtn();
+      await updateSession({ balance: {} });
+      _sessionCh.postMessage({ type: 'SESSION_BALANCE', balance: {} });
+    }
+  );
+};
+
+// ── Translate banner (mobile) ─────────────────────────────────────────────────
+function handleTranslateClick() {
+  if (window.innerWidth > 768) return;
+  const banner = document.getElementById('translateBanner');
+  if (!banner) return;
+  banner.classList.add('visible');
+  clearTimeout(_translateTimer);
+  _translateTimer = setTimeout(hideTranslateBanner, 4000);
+}
+function hideTranslateBanner() {
+  clearTimeout(_translateTimer);
+  const banner = document.getElementById('translateBanner');
+  if (banner) banner.classList.remove('visible');
+}
+window.handleTranslateClick = handleTranslateClick;
+window.hideTranslateBanner  = hideTranslateBanner;
 
 // ── Hub widget ────────────────────────────────────────────────────────────────
 function _hubWidgetHide() {
