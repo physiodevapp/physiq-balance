@@ -1,0 +1,32 @@
+{
+  "name": "PhysiQ Balance",
+  "short_name": "PhysiQ-B",
+  "description": "Evaluación de equilibrio postural con acelerómetro",
+  "start_url": "/physiq/balance/",
+  "scope": "/physiq/balance/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0d12",
+  "theme_color": "#38d9a9",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

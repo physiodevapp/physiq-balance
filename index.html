@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>PhysiQ Balance</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#38d9a9">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── Reset & tokens ──────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0a0d12;
+      --surface:  #111620;
+      --surface2: #171e2e;
+      --border:   #232d45;
+      --accent:   #4f9cf9;
+      --accent2:  #38d9a9;
+      --text:     #e8edf2;
+      --text2:    #8aa4bc;
+      --danger:   #ef4444;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', system-ui, sans-serif;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    input {
+      font-family: inherit;
+      outline: none;
+      border: none;
+      background: none;
+      color: var(--text);
+    }
+
+    /* ── Shared header ───────────────────────────────────── */
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      background: rgba(10,13,18,0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-main {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.25rem;
+      font-weight: 400;
+      color: #fff;
+      letter-spacing: -0.02em;
+      flex: 1;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .logo-main span {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .in-hub .logo-main::before {
+      content: '‹ ';
+      font-size: 1.1rem;
+      -webkit-text-fill-color: var(--text2);
+      color: var(--text2);
+    }
+
+    /* ── Session button ──────────────────────────────────── */
+    .session-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text2);
+      transition: border-color 0.2s, color 0.2s;
+      flex-shrink: 0;
+    }
+
+    .session-btn.active {
+      border-color: var(--accent2);
+      color: var(--accent2);
+    }
+
+    /* ── Back button ─────────────────────────────────────── */
+    .back-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text2);
+      font-size: 1.3rem;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+
+    .back-btn:active { background: var(--surface2); }
+
+    .header-info { flex: 1; }
+    .header-title { font-size: 1.05rem; font-weight: 600; color: var(--text); }
+    .header-subtitle { font-size: 0.78rem; color: var(--text2); }
+
+    /* ── ════════════════════════════════════════════════════ */
+    /* ── VIEW: HOME ─────────────────────────────────────── */
+    /* ── ════════════════════════════════════════════════════ */
+    #view-home {
+      display: flex;
+      flex-direction: column;
+      min-height: 100dvh;
+    }
+
+    .home-body {
+      flex: 1;
+      padding: 20px 16px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Patient row */
+    .patient-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 0 14px;
+      height: 48px;
+    }
+
+    .patient-row svg { color: var(--text2); flex-shrink: 0; }
+
+    .patient-row input {
+      flex: 1;
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+
+    .patient-row input::placeholder { color: var(--text2); }
+
+    /* Sensor warning */
+    .sensor-warning {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #f87171;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.82rem;
+    }
+
+    /* Section label */
+    .section-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text2);
+    }
+
+    /* Test grid */
+    #testGrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .test-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 12px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-align: left;
+      transition: background 0.15s, border-color 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .test-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--card-accent, var(--accent2));
+      border-radius: 14px 14px 0 0;
+    }
+
+    .test-card:active { background: var(--surface2); }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 4px;
+    }
+
+    .card-icon {
+      color: var(--card-accent, var(--accent2));
+      display: flex;
+      align-items: center;
+    }
+
+    .card-score {
+      font-family: 'DM Mono', monospace;
+      font-size: 1.15rem;
+      font-weight: 500;
+      color: var(--accent2);
+    }
+
+    .card-score small { font-size: 0.65rem; color: var(--text2); }
+
+    .card-score-empty {
+      font-family: 'DM Mono', monospace;
+      font-size: 1rem;
+      color: var(--border);
+    }
+
+    .card-label {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    .card-sublabel {
+      font-size: 0.75rem;
+      color: var(--text2);
+    }
+
+    .diff-dots {
+      display: flex;
+      gap: 3px;
+      margin-top: 2px;
+    }
+
+    .diff-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+
+    .diff-dot.filled {
+      background: var(--card-accent, var(--accent2));
+    }
+
+    /* ── ════════════════════════════════════════════════════ */
+    /* ── VIEW: SETUP ─────────────────────────────────────── */
+    /* ── ════════════════════════════════════════════════════ */
+    #view-setup {
+      display: flex;
+      flex-direction: column;
+      min-height: 100dvh;
+      position: relative;
+    }
+
+    .setup-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 20px 32px;
+      gap: 20px;
+    }
+
+    .illustration-wrap {
+      width: 160px;
+      height: 260px;
+      flex-shrink: 0;
+    }
+
+    .illustration-wrap svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .instruction-block {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .instruction-text {
+      font-size: 1.05rem;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .instruction-tip {
+      font-size: 0.82rem;
+      color: var(--text2);
+      line-height: 1.5;
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      text-align: left;
+    }
+
+    .duration-hint {
+      font-size: 0.82rem;
+      color: var(--text2);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .start-btn {
+      width: 100%;
+      max-width: 360px;
+      height: 52px;
+      border-radius: 26px;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #fff;
+      background: var(--accent2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: opacity 0.2s, transform 0.1s;
+      margin-top: auto;
+    }
+
+    .start-btn:disabled { opacity: 0.4; }
+    .start-btn:not(:disabled):active { transform: scale(0.97); }
+
+    /* ── Countdown overlay ───────────────────────────────── */
+    #countdown-overlay {
+      position: absolute;
+      inset: 64px 0 0; /* below header */
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      z-index: 20;
+    }
+
+    .cd-label {
+      font-size: 1rem;
+      color: var(--text2);
+    }
+
+    .cd-num {
+      font-family: 'DM Serif Display', serif;
+      font-size: 5rem;
+      color: var(--accent2);
+      line-height: 1;
+      animation: cd-pulse 1s ease-in-out;
+    }
+
+    @keyframes cd-pulse {
+      0%   { transform: scale(1.3); opacity: 0; }
+      40%  { transform: scale(1);   opacity: 1; }
+      100% { transform: scale(1);   opacity: 1; }
+    }
+
+    /* ── ════════════════════════════════════════════════════ */
+    /* ── VIEW: TESTING ───────────────────────────────────── */
+    /* ── ════════════════════════════════════════════════════ */
+    #view-testing {
+      display: flex;
+      flex-direction: column;
+      min-height: 100dvh;
+    }
+
+    .testing-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 32px 20px;
+    }
+
+    .timer-display {
+      font-family: 'DM Serif Display', serif;
+      font-size: 6rem;
+      color: var(--accent2);
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .testing-status {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .testing-label {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .testing-hint {
+      font-size: 0.85rem;
+      color: var(--text2);
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent2);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .stop-btn {
+      width: 100%;
+      max-width: 360px;
+      height: 52px;
+      border-radius: 26px;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #fff;
+      background: var(--danger);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .stop-btn:active { transform: scale(0.97); }
+
+    /* ── ════════════════════════════════════════════════════ */
+    /* ── OVERLAY: RESULTS ────────────────────────────────── */
+    /* ── ════════════════════════════════════════════════════ */
+    #results-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 100;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .results-card {
+      background: var(--surface);
+      border-radius: 24px 24px 0 0;
+      width: 100%;
+      max-height: 92dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Results header */
+    .results-header {
+      padding: 20px 20px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .trophy-wrap {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(56,217,169,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .results-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .results-test-name {
+      font-size: 0.78rem;
+      color: var(--text2);
+    }
+
+    .grade-badge {
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #fff;
+    }
+
+    /* Pages area */
+    .pages-viewport {
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    #resultPagesTrack {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .results-page {
+      min-width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      padding: 20px 20px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* ── Page 1: Summary ─────────────────────────────────── */
+    .stability-circle-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+    }
+
+    .stability-circle {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      border: 5px solid var(--accent2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      background: var(--bg);
+    }
+
+    .stability-rate-val {
+      font-family: 'DM Mono', monospace;
+      font-size: 1.7rem;
+      font-weight: 500;
+      color: var(--accent2);
+      line-height: 1;
+    }
+
+    .stability-rate-unit {
+      font-size: 0.7rem;
+      color: var(--text2);
+      font-family: 'DM Mono', monospace;
+    }
+
+    .score-display {
+      font-size: 0.8rem;
+      color: var(--text2);
+      font-family: 'DM Mono', monospace;
+    }
+
+    .stability-label {
+      font-size: 0.78rem;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .feedback-box {
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 0.85rem;
+      color: var(--text2);
+      line-height: 1.55;
+    }
+
+    /* ── Page 2: Metrics ─────────────────────────────────── */
+    .page-section-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .metric-item {
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 12px 12px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .metric-item-label {
+      font-size: 0.73rem;
+      color: var(--text2);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .metric-item-val {
+      font-family: 'DM Mono', monospace;
+      font-size: 1.3rem;
+      font-weight: 500;
+      color: var(--accent2);
+      line-height: 1;
+    }
+
+    .metric-item-sub {
+      font-size: 0.7rem;
+      color: var(--text2);
+    }
+
+    .metric-item-unit {
+      font-size: 0.72rem;
+      color: var(--text2);
+    }
+
+    /* ── Page 3: Advanced ────────────────────────────────── */
+    .axis-section {
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .axis-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .axis-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .axis-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .axis-cell-label {
+      font-size: 0.65rem;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .axis-cell-val {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--accent);
+    }
+
+    /* ── Pagination dots ─────────────────────────────────── */
+    .page-dots {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 0 4px;
+      flex-shrink: 0;
+    }
+
+    .page-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: background 0.2s, transform 0.2s;
+      cursor: pointer;
+    }
+
+    .page-dot.active {
+      background: var(--accent2);
+      transform: scale(1.25);
+    }
+
+    /* ── Results actions ─────────────────────────────────── */
+    .results-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .btn-discard {
+      flex: 0 0 auto;
+      background: transparent;
+      color: var(--text2);
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding: 0 16px;
+      height: 44px;
+      border-radius: 22px;
+      transition: color 0.15s;
+    }
+
+    .btn-discard:active { color: var(--danger); }
+
+    .btn-save {
+      flex: 1;
+      height: 44px;
+      border-radius: 22px;
+      background: var(--accent2);
+      color: #0a0d12;
+      font-size: 0.9rem;
+      font-weight: 700;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .btn-save:active { transform: scale(0.97); }
+
+    /* ── Confirm banner ──────────────────────────────────── */
+    #confirmBanner {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 200;
+      display: flex;
+      align-items: flex-end;
+    }
+
+    .confirm-sheet {
+      background: var(--surface);
+      border-radius: 20px 20px 0 0;
+      width: 100%;
+      padding: 24px 20px calc(20px + env(safe-area-inset-bottom));
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .confirm-title { font-size: 1rem; font-weight: 600; color: var(--text); }
+    .confirm-text  { font-size: 0.85rem; color: var(--text2); line-height: 1.5; margin-bottom: 12px; }
+
+    .confirm-actions { display: flex; gap: 10px; }
+
+    .confirm-cancel {
+      flex: 1;
+      height: 44px;
+      border-radius: 22px;
+      background: var(--surface2);
+      color: var(--text2);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    #confirmAction {
+      flex: 1;
+      height: 44px;
+      border-radius: 22px;
+      background: var(--danger);
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- VIEW: HOME                                                     -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div id="view-home">
+  <header class="app-header">
+    <span class="logo-main" role="heading" aria-level="1">
+      Physi<span>Q</span> Balance
+    </span>
+    <button id="sessionBtn" class="session-btn" onclick="promptClearSession()" aria-label="Sesión activa">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+    </button>
+  </header>
+
+  <div class="home-body">
+    <!-- Patient name -->
+    <div class="patient-row">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+      <input id="patientInput" type="text" placeholder="Nombre del paciente (opcional)" autocomplete="off" spellcheck="false">
+    </div>
+
+    <!-- Sensor warning -->
+    <div id="sensor-warning" class="sensor-warning" hidden>
+      Este dispositivo no dispone de acelerómetro. La medición de equilibrio no estará disponible.
+    </div>
+
+    <span class="section-label">Condiciones de test</span>
+
+    <!-- Test cards -->
+    <div id="testGrid"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- VIEW: SETUP                                                    -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div id="view-setup" hidden>
+  <header class="app-header">
+    <button class="back-btn" onclick="goBack()" aria-label="Volver">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 18l-6-6 6-6"/>
+      </svg>
+    </button>
+    <div class="header-info">
+      <div class="header-title" id="setupTitle">Pies Juntos</div>
+      <div class="header-subtitle" id="setupSubtitle">Ojos Abiertos</div>
+    </div>
+  </header>
+
+  <div class="setup-body">
+    <div class="illustration-wrap" id="setupIllustration"></div>
+
+    <div class="instruction-block">
+      <p class="instruction-text" id="setupInstruction"></p>
+      <div class="instruction-tip" id="setupTip"></div>
+    </div>
+
+    <p class="duration-hint">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+      <span id="setupDuration">Duración: 30 segundos</span>
+    </p>
+
+    <button id="startBtn" class="start-btn" onclick="startTest()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M8 5v14l11-7z"/>
+      </svg>
+      INICIAR TEST
+    </button>
+  </div>
+
+  <!-- Countdown overlay (positioned inside setup view) -->
+  <div id="countdown-overlay" hidden>
+    <p class="cd-label">Prepárate...</p>
+    <div id="countdownNum" class="cd-num">3</div>
+    <p class="duration-hint" style="position:absolute;bottom:32px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+      <span id="cdDuration">Duración: 30 segundos</span>
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- VIEW: TESTING                                                  -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div id="view-testing" hidden>
+  <header class="app-header">
+    <div class="header-info">
+      <div class="header-title" id="testTitle">Pies Juntos</div>
+      <div class="header-subtitle" id="testSubtitle">Ojos Abiertos</div>
+    </div>
+  </header>
+
+  <div class="testing-body">
+    <div class="timer-display" id="timerDisplay">30</div>
+
+    <div class="testing-status">
+      <p class="testing-label">Medición en curso...</p>
+      <p class="testing-hint">No muevas el teléfono mientras mantienes el equilibrio.</p>
+    </div>
+
+    <div class="spinner"></div>
+
+    <button id="stopBtn" class="stop-btn" onclick="stopTest()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+        <rect x="4" y="4" width="16" height="16" rx="2"/>
+      </svg>
+      DETENER TEST
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- OVERLAY: RESULTS                                               -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div id="results-overlay" hidden>
+  <div class="results-card">
+
+    <!-- Fixed header -->
+    <div class="results-header">
+      <div class="trophy-wrap">🏆</div>
+      <p class="results-title">Test Completo</p>
+      <p class="results-test-name" id="resultsTestName"></p>
+      <span class="grade-badge" id="gradeBadge">EXCELENTE</span>
+    </div>
+
+    <!-- Swipeable pages -->
+    <div class="pages-viewport">
+      <div id="resultPagesTrack">
+
+        <!-- Page 1: Summary -->
+        <div class="results-page">
+          <div class="stability-circle-wrap">
+            <div class="stability-circle" id="stabilityCircle">
+              <span class="stability-rate-val" id="stabilityRateVal">—</span>
+              <span class="stability-rate-unit">mG/s</span>
+              <span class="score-display" id="scoreDisplay">—/100</span>
+            </div>
+            <p class="stability-label">Tasa de Sway</p>
+          </div>
+          <div class="feedback-box" id="feedbackText"></div>
+        </div>
+
+        <!-- Page 2: Test Metrics -->
+        <div class="results-page">
+          <p class="page-section-title">Métricas del Test</p>
+          <div class="metrics-grid">
+            <div class="metric-item">
+              <span class="metric-item-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Duración
+              </span>
+              <span class="metric-item-val" id="metDuration">—</span>
+              <span class="metric-item-sub" id="metMeasured">Medido: —</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-item-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Sway Total
+              </span>
+              <span class="metric-item-val" id="metTotalSway">—</span>
+              <span class="metric-item-unit">mG</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-item-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                H-RMS
+              </span>
+              <span class="metric-item-val" id="metHRMS">—</span>
+              <span class="metric-item-unit">mG</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-item-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                H-SD
+              </span>
+              <span class="metric-item-val" id="metHSD">—</span>
+              <span class="metric-item-unit">mG</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Page 3: Advanced Metrics -->
+        <div class="results-page">
+          <p class="page-section-title">Métricas Avanzadas</p>
+
+          <div class="axis-section">
+            <p class="axis-title">Sway AP (Ant-Post)</p>
+            <div class="axis-row">
+              <div class="axis-cell">
+                <span class="axis-cell-label">NPL</span>
+                <span class="axis-cell-val" id="advApNPL">—</span>
+              </div>
+              <div class="axis-cell">
+                <span class="axis-cell-label">RMS</span>
+                <span class="axis-cell-val" id="advApRMS">—</span>
+              </div>
+              <div class="axis-cell">
+                <span class="axis-cell-label">SD</span>
+                <span class="axis-cell-val" id="advApSD">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="axis-section">
+            <p class="axis-title">Sway ML (Lat-Med)</p>
+            <div class="axis-row">
+              <div class="axis-cell">
+                <span class="axis-cell-label">NPL</span>
+                <span class="axis-cell-val" id="advMlNPL">—</span>
+              </div>
+              <div class="axis-cell">
+                <span class="axis-cell-label">RMS</span>
+                <span class="axis-cell-val" id="advMlRMS">—</span>
+              </div>
+              <div class="axis-cell">
+                <span class="axis-cell-label">SD</span>
+                <span class="axis-cell-val" id="advMlSD">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="axis-section">
+            <p class="axis-title">Sway UD (Vertical)</p>
+            <div class="axis-row">
+              <div class="axis-cell">
+                <span class="axis-cell-label">NPL</span>
+                <span class="axis-cell-val" id="advUdNPL">—</span>
+              </div>
+              <div class="axis-cell">
+                <span class="axis-cell-label">RMS</span>
+                <span class="axis-cell-val" id="advUdRMS">—</span>
+              </div>
+              <div class="axis-cell">
+                <span class="axis-cell-label">SD</span>
+                <span class="axis-cell-val" id="advUdSD">—</span>
+              </div>
+            </div>
+          </div>
+
+          <p style="font-size:0.7rem;color:var(--text2);text-align:center;padding-bottom:4px;">Valores en mG</p>
+        </div>
+
+      </div><!-- /#resultPagesTrack -->
+    </div><!-- /.pages-viewport -->
+
+    <!-- Dots -->
+    <div class="page-dots">
+      <span class="page-dot active"></span>
+      <span class="page-dot"></span>
+      <span class="page-dot"></span>
+    </div>
+
+    <!-- Actions -->
+    <div class="results-actions">
+      <button class="btn-discard" onclick="discardResult()">Descartar</button>
+      <button class="btn-save" onclick="saveResult()">Guardar Resultados</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- CONFIRM BANNER                                                 -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div id="confirmBanner" hidden>
+  <div class="confirm-sheet">
+    <p class="confirm-title" id="confirmTitle"></p>
+    <p class="confirm-text"  id="confirmText"></p>
+    <div class="confirm-actions">
+      <button class="confirm-cancel" id="confirmCancel">Cancelar</button>
+      <button id="confirmAction"></button>
+    </div>
+  </div>
+</div>
+
+<script src="lib/session.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
