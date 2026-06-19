@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'physiq-balance-v2';
+const CACHE = 'physiq-balance-v3';
 const ASSETS = [
   './',
   './index.html',
