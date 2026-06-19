@@ -237,6 +237,24 @@
       .logo-sub-initial { display: inline; }
     }
 
+    /* Translate banner push — views slide down as banner slides in */
+    #view-home, #view-setup, #view-testing { transition: padding-top 0.25s ease; }
+    @media (max-width: 768px) {
+      .translate-banner.visible ~ #view-home,
+      .translate-banner.visible ~ #view-setup,
+      .translate-banner.visible ~ #view-testing { padding-top: calc(52px + 36px); }
+    }
+    @media (max-width: 480px) {
+      .translate-banner.visible ~ #view-home,
+      .translate-banner.visible ~ #view-setup,
+      .translate-banner.visible ~ #view-testing { padding-top: calc(48px + 36px); }
+    }
+    @media (max-height: 500px) and (max-width: 900px) {
+      .translate-banner.visible ~ #view-home,
+      .translate-banner.visible ~ #view-setup,
+      .translate-banner.visible ~ #view-testing { padding-top: calc(44px + 36px); }
+    }
+
     /* ── ════════════════════════════════════════════════════ */
     /* ── VIEW: HOME ─────────────────────────────────────── */
     /* ── ════════════════════════════════════════════════════ */
