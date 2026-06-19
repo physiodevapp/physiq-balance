@@ -1,0 +1,683 @@
+'use strict';
+
+// ── Test definitions ─────────────────────────────────────────────────────────
+const TESTS = {
+  'ft-eo': {
+    label:       'Pies Juntos',
+    sublabel:    'Ojos Abiertos',
+    stance:      'bilateral',
+    eyes:        'open',
+    threshold:   200,
+    duration:    30,
+    color:       '#38d9a9',
+    difficulty:  1,
+    instruction: 'Mantén el teléfono vertical apoyado contra el ombligo con ambas manos.',
+    tip:         'Mantén los pies juntos y la vista al frente.'
+  },
+  'ft-ec': {
+    label:       'Pies Juntos',
+    sublabel:    'Ojos Cerrados',
+    stance:      'bilateral',
+    eyes:        'closed',
+    threshold:   380,
+    duration:    30,
+    color:       '#4f9cf9',
+    difficulty:  2,
+    instruction: 'Mantén el teléfono vertical apoyado contra el ombligo con ambas manos.',
+    tip:         'Mantén los pies juntos y cierra los ojos cuando empiece la cuenta atrás.'
+  },
+  'tn-eo': {
+    label:       'Tándem',
+    sublabel:    'Ojos Abiertos',
+    stance:      'tandem',
+    eyes:        'open',
+    threshold:   320,
+    duration:    30,
+    color:       '#fb923c',
+    difficulty:  3,
+    instruction: 'Coloca un pie justo delante del otro (talón-punta) y apoya el teléfono contra el ombligo.',
+    tip:         'Mantén la mirada fija en un punto al frente.'
+  },
+  'tn-ec': {
+    label:       'Tándem',
+    sublabel:    'Ojos Cerrados',
+    stance:      'tandem',
+    eyes:        'closed',
+    threshold:   560,
+    duration:    30,
+    color:       '#ef4444',
+    difficulty:  4,
+    instruction: 'Coloca un pie justo delante del otro (talón-punta) y apoya el teléfono contra el ombligo.',
+    tip:         'Cierra los ojos cuando empiece la cuenta atrás. Ten a alguien cerca por seguridad.'
+  }
+};
+
+const COUNTDOWN_SECS  = 3;
+const SAMPLE_RATE_MS  = 20; // 50 Hz
+const G_TO_MG         = 1000 / 9.80665;
+
+// ── State ────────────────────────────────────────────────────────────────────
+let _phase      = 'home'; // 'home' | 'setup' | 'countdown' | 'testing' | 'results'
+let _testId     = null;
+let _samples    = [];
+let _lastAccel  = null;
+let _sampleInt  = null;
+let _testTimer  = null;
+let _cdTimer    = null;
+let _secsLeft   = 30;
+let _cdSecsLeft = COUNTDOWN_SECS;
+let _lastResult = null; // computed metrics for current test
+let _patient    = '';
+let _balanceResults = {}; // { testId: savedResult }
+let _sessionGen     = 0;
+let _sessionCleared = false;
+let _resultsPage    = 0;
+let _swipeStartX    = 0;
+
+const _sessionCh = new BroadcastChannel('physiq-session');
+
+// ── DOM refs (set after DOMContentLoaded) ────────────────────────────────────
+let $viewHome, $viewSetup, $viewTesting, $countdownOverlay, $resultsOverlay;
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  $viewHome         = document.getElementById('view-home');
+  $viewSetup        = document.getElementById('view-setup');
+  $viewTesting      = document.getElementById('view-testing');
+  $countdownOverlay = document.getElementById('countdown-overlay');
+  $resultsOverlay   = document.getElementById('results-overlay');
+
+  // Hub integration
+  try {
+    if (window.self !== window.top) {
+      document.body.classList.add('in-hub');
+      document.querySelector('.logo-main').addEventListener('click', () => {
+        window.parent.postMessage({ type: 'PHYSIQ_GO_HOME' }, '*');
+      });
+    }
+  } catch (_) {
+    document.body.classList.add('in-hub');
+  }
+
+  // Sensor check
+  if (typeof DeviceMotionEvent === 'undefined') {
+    document.getElementById('sensor-warning').hidden = false;
+  }
+
+  // Load session
+  const session = await readSession();
+  if (session) {
+    _patient = session.patient || '';
+    _balanceResults = session.balance || {};
+    _applySessionToUI(session);
+  }
+
+  // Render home
+  _renderTestCards();
+  _updateSessionChip();
+  _showView('home');
+
+  // BroadcastChannel
+  _sessionCh.onmessage = _handleBC;
+
+  // SW
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js');
+  }
+
+  // Patient name input
+  const patientInput = document.getElementById('patientInput');
+  if (patientInput) {
+    patientInput.value = _patient;
+    patientInput.addEventListener('input', _onPatientInput);
+  }
+
+  // Setup swipe on results pages
+  _initResultsSwipe();
+});
+
+// ── Session helpers ───────────────────────────────────────────────────────────
+function _applySessionToUI(session) {
+  if (session.patient) {
+    const inp = document.getElementById('patientInput');
+    if (inp) inp.value = session.patient;
+  }
+}
+
+function _updateSessionChip() {
+  const btn = document.getElementById('sessionBtn');
+  if (!btn) return;
+  const hasSession = _patient || Object.keys(_balanceResults).length > 0;
+  btn.classList.toggle('active', !!hasSession);
+}
+
+let _patientDebounce = null;
+function _onPatientInput(e) {
+  _patient = e.target.value.trim();
+  _sessionCleared = false;
+  clearTimeout(_patientDebounce);
+  _patientDebounce = setTimeout(() => _persistPatient(), 800);
+  _updateSessionChip();
+}
+
+async function _persistPatient() {
+  const gen = _sessionGen;
+  const session = await writeSession({ patient: _patient, date: _todayStr() });
+  if (_sessionGen !== gen) {
+    await clearSession();
+    return;
+  }
+  _sessionCh.postMessage({ type: 'SESSION_PATIENT', patient: _patient });
+}
+
+function _todayStr() {
+  const d = new Date();
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+
+// ── BroadcastChannel ─────────────────────────────────────────────────────────
+function _handleBC(e) {
+  const msg = e.data;
+  if (!msg) return;
+  if (msg.type === 'SESSION_PATIENT') {
+    _patient = msg.patient || '';
+    const inp = document.getElementById('patientInput');
+    if (inp) inp.value = _patient;
+    _updateSessionChip();
+  }
+  if (msg.type === 'SESSION_CLEAR') {
+    _softReset();
+  }
+}
+
+// ── View routing ──────────────────────────────────────────────────────────────
+function _showView(name) {
+  _phase = name === 'countdown' ? 'countdown' : name;
+  $viewHome.hidden         = (name !== 'home');
+  $viewSetup.hidden        = (name !== 'setup' && name !== 'countdown');
+  $viewTesting.hidden      = (name !== 'testing');
+  $countdownOverlay.hidden = (name !== 'countdown');
+  $resultsOverlay.hidden   = (name !== 'results');
+
+  // Hub widget hide during confirm banners is handled per call
+}
+
+// ── Home ──────────────────────────────────────────────────────────────────────
+function _renderTestCards() {
+  const grid = document.getElementById('testGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  for (const [id, t] of Object.entries(TESTS)) {
+    const saved = _balanceResults[id];
+    const score = saved ? saved.score : null;
+
+    const card = document.createElement('button');
+    card.className = 'test-card';
+    card.dataset.testId = id;
+    card.style.setProperty('--card-accent', t.color);
+    card.addEventListener('click', () => _openSetup(id));
+
+    const diffDots = Array.from({ length: 4 }, (_, i) =>
+      `<span class="diff-dot${i < t.difficulty ? ' filled' : ''}"></span>`
+    ).join('');
+
+    const scoreHtml = score !== null
+      ? `<span class="card-score" style="color:${_gradeColor(score)}">${score}<small>/100</small></span>`
+      : `<span class="card-score-empty">—</span>`;
+
+    card.innerHTML = `
+      <div class="card-top">
+        <div class="card-icon">${_stanceIcon(id)}</div>
+        ${scoreHtml}
+      </div>
+      <div class="card-label">${t.label}</div>
+      <div class="card-sublabel">${t.sublabel}</div>
+      <div class="diff-dots">${diffDots}</div>
+    `;
+    grid.appendChild(card);
+  }
+}
+
+function _stanceIcon(testId) {
+  const t = TESTS[testId];
+  if (t.stance === 'tandem') {
+    return `<svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <circle cx="15" cy="3" r="2.5" fill="currentColor"/>
+      <rect x="13" y="6" width="4" height="7" rx="2" fill="currentColor"/>
+      <rect x="13" y="13" width="2" height="7" rx="1" fill="currentColor"/>
+      <rect x="16" y="16" width="2" height="7" rx="1" fill="currentColor"/>
+    </svg>`;
+  }
+  return `<svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+    <circle cx="16" cy="3" r="2.5" fill="currentColor"/>
+    <rect x="14" y="6" width="4" height="7" rx="2" fill="currentColor"/>
+    <rect x="12" y="13" width="2" height="7" rx="1" fill="currentColor"/>
+    <rect x="18" y="13" width="2" height="7" rx="1" fill="currentColor"/>
+  </svg>`;
+}
+
+// ── Setup ──────────────────────────────────────────────────────────────────────
+function _openSetup(testId) {
+  _testId = testId;
+  const t = TESTS[testId];
+
+  document.getElementById('setupTitle').textContent    = t.label;
+  document.getElementById('setupSubtitle').textContent = t.sublabel;
+  document.getElementById('setupInstruction').textContent = t.instruction;
+  document.getElementById('setupTip').textContent      = t.tip;
+  document.getElementById('setupDuration').textContent = `Duración: ${t.duration} segundos`;
+  document.getElementById('setupIllustration').innerHTML = _stanceIllustration(t.stance);
+
+  const startBtn = document.getElementById('startBtn');
+  startBtn.style.background = t.color;
+  startBtn.disabled = false;
+
+  _showView('setup');
+}
+
+function _stanceIllustration(stance) {
+  if (stance === 'tandem') {
+    return `<svg viewBox="0 0 160 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="80" cy="28" r="22" stroke="var(--accent2)" stroke-width="2.5"/>
+      <rect x="68" y="52" width="24" height="60" rx="12" stroke="var(--accent2)" stroke-width="2.5"/>
+      <path d="M68 68 Q50 78 54 96" stroke="var(--accent2)" stroke-width="3" stroke-linecap="round"/>
+      <path d="M92 68 Q110 78 106 96" stroke="var(--accent2)" stroke-width="3" stroke-linecap="round"/>
+      <rect x="72" y="86" width="16" height="26" rx="4" fill="var(--accent2)" opacity="0.9"/>
+      <rect x="76" y="90" width="8" height="18" rx="2" fill="var(--bg)" opacity="0.6"/>
+      <rect x="75" y="112" width="9" height="56" rx="4.5" stroke="var(--accent2)" stroke-width="2.5"/>
+      <rect x="78" y="144" width="9" height="56" rx="4.5" stroke="var(--accent2)" stroke-width="2.5"/>
+      <path d="M62 172 Q80 168 98 172" stroke="var(--accent2)" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+      <path d="M62 202 Q80 198 98 202" stroke="var(--accent2)" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+    </svg>`;
+  }
+  return `<svg viewBox="0 0 160 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="80" cy="28" r="22" stroke="var(--accent2)" stroke-width="2.5"/>
+    <rect x="68" y="52" width="24" height="60" rx="12" stroke="var(--accent2)" stroke-width="2.5"/>
+    <path d="M68 68 Q50 78 54 96" stroke="var(--accent2)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M92 68 Q110 78 106 96" stroke="var(--accent2)" stroke-width="3" stroke-linecap="round"/>
+    <rect x="72" y="86" width="16" height="26" rx="4" fill="var(--accent2)" opacity="0.9"/>
+    <rect x="76" y="90" width="8" height="18" rx="2" fill="var(--bg)" opacity="0.6"/>
+    <rect x="70" y="112" width="10" height="58" rx="5" stroke="var(--accent2)" stroke-width="2.5"/>
+    <rect x="80" y="112" width="10" height="58" rx="5" stroke="var(--accent2)" stroke-width="2.5"/>
+    <ellipse cx="75" cy="176" rx="18" ry="7" stroke="var(--accent2)" stroke-width="2.5"/>
+    <ellipse cx="85" cy="176" rx="18" ry="7" stroke="var(--accent2)" stroke-width="2.5"/>
+  </svg>`;
+}
+
+window.goBack = function () {
+  _showView('home');
+};
+
+// ── Start test (permission + countdown) ──────────────────────────────────────
+window.startTest = async function () {
+  // iOS 13+ sensor permission
+  if (typeof DeviceMotionEvent !== 'undefined' &&
+      typeof DeviceMotionEvent.requestPermission === 'function') {
+    try {
+      const perm = await DeviceMotionEvent.requestPermission();
+      if (perm !== 'granted') {
+        _showSensorError('Permiso de movimiento denegado. Habilítalo en Ajustes › Privacidad.');
+        return;
+      }
+    } catch (err) {
+      _showSensorError('No se pudo solicitar permiso del sensor.');
+      return;
+    }
+  }
+
+  document.getElementById('startBtn').disabled = true;
+  _cdSecsLeft = COUNTDOWN_SECS;
+  document.getElementById('countdownNum').textContent = _cdSecsLeft;
+  _showView('countdown');
+
+  _cdTimer = setInterval(() => {
+    _cdSecsLeft--;
+    if (_cdSecsLeft <= 0) {
+      clearInterval(_cdTimer);
+      _cdTimer = null;
+      _beginTest();
+    } else {
+      document.getElementById('countdownNum').textContent = _cdSecsLeft;
+    }
+  }, 1000);
+};
+
+function _showSensorError(msg) {
+  document.getElementById('startBtn').disabled = false;
+  const el = document.getElementById('sensor-warning');
+  el.textContent = msg;
+  el.hidden = false;
+}
+
+// ── Test in progress ──────────────────────────────────────────────────────────
+function _beginTest() {
+  const t = TESTS[_testId];
+  _samples  = [];
+  _lastAccel = null;
+  _secsLeft  = t.duration;
+
+  document.getElementById('testTitle').textContent    = t.label;
+  document.getElementById('testSubtitle').textContent = t.sublabel;
+  document.getElementById('timerDisplay').textContent = _secsLeft;
+  document.getElementById('stopBtn').style.background = '#ef4444';
+
+  _showView('testing');
+  _startSensor();
+  _startTestTimer(t.duration);
+}
+
+function _startSensor() {
+  window.addEventListener('devicemotion', _onMotion);
+  _sampleInt = setInterval(() => {
+    if (_lastAccel) _samples.push({ ..._lastAccel });
+  }, SAMPLE_RATE_MS);
+}
+
+function _stopSensor() {
+  clearInterval(_sampleInt);
+  _sampleInt = null;
+  window.removeEventListener('devicemotion', _onMotion);
+}
+
+function _onMotion(e) {
+  const ag = e.accelerationIncludingGravity;
+  if (!ag) return;
+  _lastAccel = {
+    ml: (ag.x || 0) * G_TO_MG, // mediolateral (side-side)
+    ud: (ag.y || 0) * G_TO_MG, // vertical (up-down)
+    ap: (ag.z || 0) * G_TO_MG  // anterior-posterior (front-back)
+  };
+}
+
+function _startTestTimer(duration) {
+  _testTimer = setInterval(() => {
+    _secsLeft--;
+    document.getElementById('timerDisplay').textContent = _secsLeft;
+    if (_secsLeft <= 0) {
+      clearInterval(_testTimer);
+      _testTimer = null;
+      _endTest();
+    }
+  }, 1000);
+}
+
+window.stopTest = function () {
+  if (_testTimer) { clearInterval(_testTimer); _testTimer = null; }
+  _endTest();
+};
+
+function _endTest() {
+  _stopSensor();
+  const metrics = _computeMetrics(_samples);
+  _lastResult = { testId: _testId, metrics };
+  _showResults(metrics);
+}
+
+// ── Metrics computation ───────────────────────────────────────────────────────
+function _computeMetrics(samples) {
+  const n = samples.length;
+  if (n < 10) return null;
+
+  const ap = samples.map(s => s.ap);
+  const ml = samples.map(s => s.ml);
+  const ud = samples.map(s => s.ud);
+
+  const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
+
+  const mAP = mean(ap), mML = mean(ml), mUD = mean(ud);
+
+  const apC = ap.map(v => v - mAP);
+  const mlC = ml.map(v => v - mML);
+  const udC = ud.map(v => v - mUD);
+
+  const rms = arr => Math.sqrt(arr.reduce((a, b) => a + b * b, 0) / arr.length);
+  const sd  = arr => {
+    const m = mean(arr);
+    return Math.sqrt(arr.reduce((a, b) => a + (b - m) * (b - m), 0) / arr.length);
+  };
+  const npl = arr => {
+    let sum = 0;
+    for (let i = 1; i < arr.length; i++) sum += Math.abs(arr[i] - arr[i - 1]);
+    return sum;
+  };
+
+  const apRMS = rms(apC), mlRMS = rms(mlC), udRMS = rms(udC);
+  const apSD  = sd(apC),  mlSD  = sd(mlC),  udSD  = sd(udC);
+  const apNPL = npl(apC), mlNPL = npl(mlC), udNPL = npl(udC);
+
+  const hRMS = Math.sqrt(apRMS * apRMS + mlRMS * mlRMS);
+
+  // H-SD: std of the horizontal magnitude time series
+  const hSeries = apC.map((v, i) => Math.sqrt(v * v + mlC[i] * mlC[i]));
+  const hSD = sd(hSeries);
+
+  // 2D path length in horizontal plane
+  let totalSway = 0;
+  for (let i = 1; i < n; i++) {
+    const dAP = apC[i] - apC[i - 1];
+    const dML = mlC[i] - mlC[i - 1];
+    totalSway += Math.sqrt(dAP * dAP + dML * dML);
+  }
+
+  const measuredDuration = n * SAMPLE_RATE_MS / 1000;
+  const stabilityRate    = measuredDuration > 0 ? totalSway / measuredDuration : 0;
+
+  const threshold = TESTS[_testId].threshold;
+  const score     = Math.max(0, Math.min(100, Math.round(100 * (1 - hRMS / threshold))));
+
+  return {
+    plannedDuration: TESTS[_testId].duration,
+    measuredDuration,
+    hRMS,
+    hSD,
+    totalSway,
+    stabilityRate,
+    score,
+    ap: { rms: apRMS, sd: apSD, npl: apNPL },
+    ml: { rms: mlRMS, sd: mlSD, npl: mlNPL },
+    ud: { rms: udRMS, sd: udSD, npl: udNPL }
+  };
+}
+
+// ── Results display ───────────────────────────────────────────────────────────
+function _showResults(metrics) {
+  if (!metrics) {
+    _showView('home');
+    return;
+  }
+
+  const t     = TESTS[_testId];
+  const grade = _getGrade(metrics.score);
+
+  // Header
+  document.getElementById('resultsTestName').textContent = `${t.label} · ${t.sublabel}`;
+  const gradeBadge = document.getElementById('gradeBadge');
+  gradeBadge.textContent   = grade.label;
+  gradeBadge.style.background = grade.color;
+
+  // Page 1 — Summary
+  const circle = document.getElementById('stabilityCircle');
+  circle.style.borderColor = grade.color;
+  document.getElementById('stabilityRateVal').textContent = _fmt1(metrics.stabilityRate);
+  document.getElementById('scoreDisplay').textContent     = `${metrics.score}/100`;
+  document.getElementById('feedbackText').textContent     = _getFeedback(metrics.score);
+
+  // Page 2 — Test Metrics
+  document.getElementById('metDuration').textContent   = `${metrics.plannedDuration}s`;
+  document.getElementById('metMeasured').textContent   = `Medido: ${_fmt1(metrics.measuredDuration)}s`;
+  document.getElementById('metTotalSway').textContent  = _fmt1(metrics.totalSway);
+  document.getElementById('metHRMS').textContent       = _fmt1(metrics.hRMS);
+  document.getElementById('metHSD').textContent        = _fmt1(metrics.hSD);
+
+  // Page 3 — Advanced
+  document.getElementById('advApNPL').textContent = _fmt1(metrics.ap.npl);
+  document.getElementById('advApRMS').textContent = _fmt1(metrics.ap.rms);
+  document.getElementById('advApSD').textContent  = _fmt1(metrics.ap.sd);
+  document.getElementById('advMlNPL').textContent = _fmt1(metrics.ml.npl);
+  document.getElementById('advMlRMS').textContent = _fmt1(metrics.ml.rms);
+  document.getElementById('advMlSD').textContent  = _fmt1(metrics.ml.sd);
+  document.getElementById('advUdNPL').textContent = _fmt1(metrics.ud.npl);
+  document.getElementById('advUdRMS').textContent = _fmt1(metrics.ud.rms);
+  document.getElementById('advUdSD').textContent  = _fmt1(metrics.ud.sd);
+
+  // Reset to page 1
+  _resultsPage = 0;
+  _updateResultsPage();
+
+  _showView('results');
+  _hubWidgetHide();
+}
+
+function _getGrade(score) {
+  if (score >= 80) return { label: 'EXCELENTE', color: '#38d9a9' };
+  if (score >= 60) return { label: 'BUENO',     color: '#4f9cf9' };
+  if (score >= 40) return { label: 'REGULAR',   color: '#fb923c' };
+  return                  { label: 'DÉFICIT',   color: '#ef4444' };
+}
+
+function _gradeColor(score) {
+  return _getGrade(score).color;
+}
+
+function _getFeedback(score) {
+  if (score >= 80) return 'Equilibrio excelente. La oscilación postural mínima indica un control neuromuscular y una estabilidad sobresalientes.';
+  if (score >= 60) return 'Buen equilibrio. La oscilación postural está dentro del rango normal para esta condición de test.';
+  if (score >= 40) return 'Oscilación moderada detectada. El entrenamiento de equilibrio puede ayudar a mejorar la estabilidad.';
+  return 'Oscilación significativa detectada. Se recomienda evaluación por un fisioterapeuta.';
+}
+
+function _fmt1(v) {
+  return typeof v === 'number' ? v.toFixed(1) : '—';
+}
+
+// ── Results swipe ─────────────────────────────────────────────────────────────
+function _initResultsSwipe() {
+  const track = document.getElementById('resultPagesTrack');
+  if (!track) return;
+
+  track.addEventListener('touchstart', e => { _swipeStartX = e.touches[0].clientX; }, { passive: true });
+  track.addEventListener('touchend',   e => {
+    const dx = e.changedTouches[0].clientX - _swipeStartX;
+    if (dx < -50 && _resultsPage < 2) _resultsPage++;
+    else if (dx > 50 && _resultsPage > 0) _resultsPage--;
+    _updateResultsPage();
+  }, { passive: true });
+
+  // Dot click
+  document.querySelectorAll('.page-dot').forEach((dot, i) => {
+    dot.addEventListener('click', () => { _resultsPage = i; _updateResultsPage(); });
+  });
+}
+
+function _updateResultsPage() {
+  const track = document.getElementById('resultPagesTrack');
+  if (track) track.style.transform = `translateX(-${_resultsPage * 100}%)`;
+  document.querySelectorAll('.page-dot').forEach((d, i) => {
+    d.classList.toggle('active', i === _resultsPage);
+  });
+}
+
+// ── Results actions ───────────────────────────────────────────────────────────
+window.discardResult = function () {
+  _lastResult = null;
+  _showView('home');
+  _hubWidgetShow();
+};
+
+window.saveResult = async function () {
+  if (!_lastResult) { _showView('home'); return; }
+
+  const { testId, metrics } = _lastResult;
+  _balanceResults[testId] = {
+    testId,
+    label:    TESTS[testId].label,
+    sublabel: TESTS[testId].sublabel,
+    score:    metrics.score,
+    metrics
+  };
+
+  const patch = { balance: _balanceResults };
+  if (_patient) {
+    patch.patient = _patient;
+    patch.date    = _todayStr();
+  }
+
+  const gen = _sessionGen;
+  if (_patient || Object.keys(_balanceResults).length > 0) {
+    _sessionCleared = false;
+    const session = await writeSession(patch);
+    if (_sessionGen !== gen) { await clearSession(); }
+    else if (session) {
+      _sessionCh.postMessage({ type: 'SESSION_BALANCE', balance: _balanceResults });
+      if (_patient) _sessionCh.postMessage({ type: 'SESSION_PATIENT', patient: _patient });
+    }
+  }
+
+  _lastResult = null;
+  _renderTestCards();
+  _updateSessionChip();
+  _showView('home');
+  _hubWidgetShow();
+};
+
+// ── Session clear ─────────────────────────────────────────────────────────────
+window.promptClearSession = function () {
+  _hubWidgetHide();
+  showConfirmBanner(
+    'Limpiar sesión',
+    'Se borrarán todos los resultados de balance guardados.',
+    'Limpiar',
+    async () => {
+      _hubWidgetShow();
+      await _softReset(true);
+    }
+  );
+};
+
+async function _softReset(fullClear = false) {
+  _sessionGen++;
+  _sessionCleared = true;
+  _balanceResults = {};
+  _patient = '';
+
+  const inp = document.getElementById('patientInput');
+  if (inp) inp.value = '';
+
+  _renderTestCards();
+  _updateSessionChip();
+
+  if (fullClear) {
+    await clearSession();
+    _sessionCh.postMessage({ type: 'SESSION_CLEAR' });
+  } else {
+    _sessionCh.postMessage({ type: 'SESSION_BALANCE', balance: {} });
+  }
+}
+
+// ── Hub widget ────────────────────────────────────────────────────────────────
+function _hubWidgetHide() {
+  try { window.parent.postMessage({ type: 'PHYSIQ_WIDGET_HIDE' }, '*'); } catch (_) {}
+}
+function _hubWidgetShow() {
+  try { window.parent.postMessage({ type: 'PHYSIQ_WIDGET_SHOW' }, '*'); } catch (_) {}
+}
+
+// ── Confirm banner ────────────────────────────────────────────────────────────
+function showConfirmBanner(title, text, actionLabel, onConfirm) {
+  const el = document.getElementById('confirmBanner');
+  document.getElementById('confirmTitle').textContent  = title;
+  document.getElementById('confirmText').textContent   = text;
+  document.getElementById('confirmAction').textContent = actionLabel;
+  el.hidden = false;
+
+  const onAction = () => { el.hidden = true; cleanup(); onConfirm(); };
+  const onCancel = () => { el.hidden = true; cleanup(); _hubWidgetShow(); };
+
+  document.getElementById('confirmAction').addEventListener('click', onAction, { once: true });
+  document.getElementById('confirmCancel').addEventListener('click', onCancel, { once: true });
+
+  function cleanup() {
+    document.getElementById('confirmAction').removeEventListener('click', onAction);
+    document.getElementById('confirmCancel').removeEventListener('click', onCancel);
+  }
+}
