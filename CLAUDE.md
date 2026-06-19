@@ -116,11 +116,13 @@ A lower hRMS relative to the test's threshold yields a higher score.
 ## View State Machine
 
 ```
-home ──[_openSetup(id)]──► setup ──[startTest()]──► countdown ──► testing ──[_endTest()]──► results
- ▲         ▲                            │                                                      │
- │         └────────────[goBack()]──────┘                                         [discardResult()]
- └────────────────────────────────────────────────────────────────────────────────[saveResult()]
+home ──[_openSetup(id)]──► setup ──[startTest()]──► countdown ──► testing ──[timer=0: _endTest()]──► results
+ ▲         ▲                            │                │                                              │
+ │         └────────────[goBack()]──────┘      [stopTest(): discard]                    [discardResult()]
+ └───────────────────────────────────────────────────────────────────────────────────────[saveResult()]
 ```
+
+**Early stop rule:** `stopTest()` (user taps DETENER TEST before the timer finishes) always discards — it stops the sensor, clears samples, and returns to home without analyzing. Only the natural timer expiry (`_secsLeft <= 0`) triggers `_endTest()` and shows results.
 
 `_phase` holds the current view name: `'home'`, `'setup'`, `'countdown'`, `'testing'`, `'results'`.
 
