@@ -245,7 +245,6 @@ function _renderTestCards() {
 
     card.innerHTML = `
       <div class="card-top">
-        <div class="card-icon">${_stanceIcon(id)}</div>
         ${scoreHtml}
       </div>
       <div class="card-label">${t.label}</div>
@@ -287,7 +286,6 @@ function _openSetup(testId) {
   document.getElementById('setupIllustration').innerHTML = _stanceIllustration(t.stance);
 
   const startBtn = document.getElementById('startBtn');
-  startBtn.style.background = t.color;
   startBtn.disabled = false;
 
   _showView('setup');
