@@ -418,7 +418,10 @@ function _startTestTimer(duration) {
 
 window.stopTest = function () {
   if (_testTimer) { clearInterval(_testTimer); _testTimer = null; }
-  _endTest();
+  _stopSensor();
+  _samples = [];
+  _lastResult = null;
+  _showView('home');
 };
 
 function _endTest() {

@@ -108,18 +108,20 @@
     }
     .session-btn.active { display: flex; align-items: center; justify-content: center; }
 
-    .btn-reset {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text2);
-      padding: 6px 14px;
-      border-radius: 6px;
-      font-family: 'Outfit', sans-serif;
-      font-size: 0.8rem;
+    .icon-btn {
+      background: none;
+      border: none;
       cursor: pointer;
-      transition: all 0.2s;
+      color: var(--text2);
+      padding: 6px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s;
+      border-radius: 6px;
     }
-    .btn-reset:hover { border-color: #22d3ee; color: #22d3ee; }
+    .icon-btn:hover { color: #22d3ee; }
 
     .header-right { display: flex; align-items: center; gap: 0.75rem; }
 
@@ -215,8 +217,6 @@
       .translate-banner { top: 52px; }
       #view-home, #view-setup, #view-testing { padding-top: 52px; }
       #countdown-overlay { top: 52px; }
-      .btn-reset-text { display: none; }
-      .btn-reset { padding: 5px 10px; }
       .btn-translate .translate-tooltip { display: none; }
     }
     @media (max-width: 480px) {
@@ -235,6 +235,24 @@
     @media (max-width: 360px) {
       .logo-sub-word { display: none; }
       .logo-sub-initial { display: inline; }
+    }
+
+    /* Translate banner push — views slide down as banner slides in */
+    #view-home, #view-setup, #view-testing { transition: padding-top 0.25s ease; }
+    @media (max-width: 768px) {
+      .translate-banner.visible ~ #view-home,
+      .translate-banner.visible ~ #view-setup,
+      .translate-banner.visible ~ #view-testing { padding-top: calc(52px + 36px); }
+    }
+    @media (max-width: 480px) {
+      .translate-banner.visible ~ #view-home,
+      .translate-banner.visible ~ #view-setup,
+      .translate-banner.visible ~ #view-testing { padding-top: calc(48px + 36px); }
+    }
+    @media (max-height: 500px) and (max-width: 900px) {
+      .translate-banner.visible ~ #view-home,
+      .translate-banner.visible ~ #view-setup,
+      .translate-banner.visible ~ #view-testing { padding-top: calc(44px + 36px); }
     }
 
     /* ── ════════════════════════════════════════════════════ */
@@ -874,29 +892,40 @@
 
     .btn-save:active { transform: scale(0.97); }
 
-    /* ── Confirm banner ──────────────────────────────────── */
+    /* ── Confirm dialog ──────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0)    scale(1); }
+    }
+
     #confirmBanner {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.7);
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
       z-index: 200;
       display: flex;
-      align-items: flex-end;
+      align-items: center;
+      justify-content: center;
     }
 
     .confirm-sheet {
       background: var(--surface);
-      border-radius: 20px 20px 0 0;
-      width: 100%;
-      padding: 24px 20px calc(20px + env(safe-area-inset-bottom));
-      border-top: 1px solid var(--border);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem 1.5rem 1.2rem;
+      max-width: 380px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
+      animation: fadeUp 0.2s ease;
     }
 
     .confirm-title { font-size: 1rem; font-weight: 600; color: var(--text); }
-    .confirm-text  { font-size: 0.85rem; color: var(--text2); line-height: 1.5; margin-bottom: 12px; }
+    .confirm-text  { font-size: 0.85rem; color: var(--text2); line-height: 1.5; margin-bottom: 8px; }
 
     .confirm-actions { display: flex; gap: 10px; }
 
@@ -947,7 +976,12 @@
         <path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"/>
       </svg>
     </button>
-    <button class="btn-reset" id="headerResetBtn" onclick="promptSoftResetBalance()" style="display:none">↺ <span class="btn-reset-text">Reiniciar</span></button>
+    <button class="icon-btn" id="headerResetBtn" onclick="promptSoftResetBalance()" style="display:none" aria-label="Borrar mediciones de balance" title="Borrar mediciones">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="1 4 1 10 7 10"/>
+        <path d="M3.51 15a9 9 0 1 0 .49-4.5"/>
+      </svg>
+    </button>
     <button class="btn-translate" onclick="handleTranslateClick()" aria-label="View in English">🌐<span class="translate-tooltip">Long-press or right-click → Translate to English</span></button>
   </div>
 </header>
