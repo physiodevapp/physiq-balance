@@ -225,7 +225,14 @@ function _showView(name) {
   $countdownOverlay.hidden = (name !== 'countdown');
   $resultsOverlay.hidden   = (name !== 'results');
   _updateHeader(name);
+  if (name === 'countdown') history.pushState({}, '');
 }
+
+window.addEventListener('popstate', () => {
+  if (_phase === 'countdown' || _phase === 'testing') {
+    history.pushState({}, '');
+  }
+});
 
 // ── Home ──────────────────────────────────────────────────────────────────────
 function _renderTestCards() {
