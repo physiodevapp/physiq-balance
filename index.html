@@ -123,6 +123,23 @@
     }
     .icon-btn:hover { color: #22d3ee; }
 
+    .btn-reset {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text2);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-reset:hover { border-color: #22d3ee; color: #22d3ee; }
+    @media (max-width: 768px) {
+      .btn-reset-text { display: none; }
+      .btn-reset { padding: 5px 10px; font-size: 0.75rem; }
+    }
+
     .header-right { display: flex; align-items: center; gap: 0.75rem; }
 
     .btn-translate {
@@ -276,7 +293,7 @@
     /* Patient field */
     .info-row { display: flex; gap: 10px; align-items: flex-end; }
     .field { flex: 1; display: flex; flex-direction: column; gap: 5px; }
-    .field-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; }
+    .field-label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; color: var(--text3); text-transform: uppercase; }
     .field-input { background: var(--surface); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 9px 12px; font-family: 'DM Mono', monospace; font-size: 12px; outline: none; transition: border-color 0.2s; width: 100%; }
     .field-input:focus { border-color: var(--accent); }
     .field-input:-webkit-autofill, .field-input:-webkit-autofill:focus { -webkit-box-shadow: 0 0 0px 1000px var(--surface) inset; -webkit-text-fill-color: var(--text); transition: background-color 5000s ease-in-out 0s; }
@@ -299,6 +316,8 @@
       text-transform: uppercase;
       color: var(--text2);
     }
+
+    #interpretationCard { display: flex; flex-direction: column; gap: 10px; }
 
     /* Test grid */
     #testGrid {
@@ -773,6 +792,21 @@
       gap: 5px;
     }
 
+    .metric-info-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text2);
+      padding: 0;
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      transition: color 0.15s;
+      line-height: 0;
+    }
+    .metric-info-btn:hover { color: var(--text); }
+
     .metric-item-val {
       font-family: 'DM Mono', monospace;
       font-size: 1.3rem;
@@ -824,6 +858,9 @@
       color: var(--text2);
       text-transform: uppercase;
       letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .axis-cell-val {
@@ -949,6 +986,45 @@
       font-size: 0.9rem;
       font-weight: 700;
     }
+
+    /* ── Metric info dialog ─────────────────────────────────── */
+    #metricInfoDialog {
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .metric-info-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      max-width: 340px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      animation: fadeUp 0.2s ease;
+    }
+    .metric-info-title { font-size: 1rem; font-weight: 600; color: var(--text); }
+    .metric-info-body  { font-size: 0.85rem; color: var(--text2); line-height: 1.55; }
+    .metric-info-close {
+      align-self: flex-end;
+      padding: 8px 20px;
+      border-radius: 20px;
+      background: var(--surface2);
+      color: var(--text2);
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-top: 4px;
+    }
   </style>
 </head>
 <body>
@@ -977,12 +1053,7 @@
         <path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"/>
       </svg>
     </button>
-    <button class="icon-btn" id="headerResetBtn" onclick="promptSoftResetBalance()" style="display:none" aria-label="Borrar mediciones de balance" title="Borrar mediciones">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="1 4 1 10 7 10"/>
-        <path d="M3.51 15a9 9 0 1 0 .49-4.5"/>
-      </svg>
-    </button>
+    <button class="btn-reset" id="headerResetBtn" onclick="promptSoftResetBalance()" style="display:none" aria-label="Borrar mediciones de balance" title="Borrar mediciones">↺ <span class="btn-reset-text">Reiniciar</span></button>
     <button class="btn-translate" onclick="handleTranslateClick()" aria-label="View in English">🌐<span class="translate-tooltip">Long-press or right-click → Translate to English</span></button>
   </div>
 </header>
@@ -1125,6 +1196,7 @@
               <span class="metric-item-label">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 Duración
+                <button class="metric-info-btn" onclick="showMetricInfo('duration')" aria-label="Más información"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/></svg></button>
               </span>
               <span class="metric-item-val" id="metDuration">—</span>
               <span class="metric-item-sub" id="metMeasured">Medido: —</span>
@@ -1133,6 +1205,7 @@
               <span class="metric-item-label">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                 Sway Total
+                <button class="metric-info-btn" onclick="showMetricInfo('totalSway')" aria-label="Más información"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/></svg></button>
               </span>
               <span class="metric-item-val" id="metTotalSway">—</span>
               <span class="metric-item-unit">mG</span>
@@ -1141,6 +1214,7 @@
               <span class="metric-item-label">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                 H-RMS
+                <button class="metric-info-btn" onclick="showMetricInfo('hrms')" aria-label="Más información"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/></svg></button>
               </span>
               <span class="metric-item-val" id="metHRMS">—</span>
               <span class="metric-item-unit">mG</span>
@@ -1149,6 +1223,7 @@
               <span class="metric-item-label">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                 H-SD
+                <button class="metric-info-btn" onclick="showMetricInfo('hsd')" aria-label="Más información"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/></svg></button>
               </span>
               <span class="metric-item-val" id="metHSD">—</span>
               <span class="metric-item-unit">mG</span>
@@ -1164,15 +1239,15 @@
             <p class="axis-title">Sway AP (Ant-Post)</p>
             <div class="axis-row">
               <div class="axis-cell">
-                <span class="axis-cell-label">NPL</span>
+                <span class="axis-cell-label">NPL <button class="metric-info-btn" onclick="showMetricInfo('npl')" aria-label="Más información"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/></svg></button></span>
                 <span class="axis-cell-val" id="advApNPL">—</span>
               </div>
               <div class="axis-cell">
-                <span class="axis-cell-label">RMS</span>
+                <span class="axis-cell-label">RMS <button class="metric-info-btn" onclick="showMetricInfo('rms')" aria-label="Más información"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/></svg></button></span>
                 <span class="axis-cell-val" id="advApRMS">—</span>
               </div>
               <div class="axis-cell">
-                <span class="axis-cell-label">SD</span>
+                <span class="axis-cell-label">SD <button class="metric-info-btn" onclick="showMetricInfo('sd')" aria-label="Más información"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/></svg></button></span>
                 <span class="axis-cell-val" id="advApSD">—</span>
               </div>
             </div>
@@ -1182,15 +1257,15 @@
             <p class="axis-title">Sway ML (Lat-Med)</p>
             <div class="axis-row">
               <div class="axis-cell">
-                <span class="axis-cell-label">NPL</span>
+                <span class="axis-cell-label">NPL <button class="metric-info-btn" onclick="showMetricInfo('npl')" aria-label="Más información"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/></svg></button></span>
                 <span class="axis-cell-val" id="advMlNPL">—</span>
               </div>
               <div class="axis-cell">
-                <span class="axis-cell-label">RMS</span>
+                <span class="axis-cell-label">RMS <button class="metric-info-btn" onclick="showMetricInfo('rms')" aria-label="Más información"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/></svg></button></span>
                 <span class="axis-cell-val" id="advMlRMS">—</span>
               </div>
               <div class="axis-cell">
-                <span class="axis-cell-label">SD</span>
+                <span class="axis-cell-label">SD <button class="metric-info-btn" onclick="showMetricInfo('sd')" aria-label="Más información"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/></svg></button></span>
                 <span class="axis-cell-val" id="advMlSD">—</span>
               </div>
             </div>
@@ -1200,15 +1275,15 @@
             <p class="axis-title">Sway UD (Vertical)</p>
             <div class="axis-row">
               <div class="axis-cell">
-                <span class="axis-cell-label">NPL</span>
+                <span class="axis-cell-label">NPL <button class="metric-info-btn" onclick="showMetricInfo('npl')" aria-label="Más información"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/></svg></button></span>
                 <span class="axis-cell-val" id="advUdNPL">—</span>
               </div>
               <div class="axis-cell">
-                <span class="axis-cell-label">RMS</span>
+                <span class="axis-cell-label">RMS <button class="metric-info-btn" onclick="showMetricInfo('rms')" aria-label="Más información"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/></svg></button></span>
                 <span class="axis-cell-val" id="advUdRMS">—</span>
               </div>
               <div class="axis-cell">
-                <span class="axis-cell-label">SD</span>
+                <span class="axis-cell-label">SD <button class="metric-info-btn" onclick="showMetricInfo('sd')" aria-label="Más información"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/></svg></button></span>
                 <span class="axis-cell-val" id="advUdSD">—</span>
               </div>
             </div>
@@ -1247,6 +1322,17 @@
       <button class="confirm-cancel" id="confirmCancel">Cancelar</button>
       <button id="confirmAction"></button>
     </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- METRIC INFO DIALOG                                             -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div id="metricInfoDialog" hidden onclick="hideMetricInfo()">
+  <div class="metric-info-card" onclick="event.stopPropagation()">
+    <p class="metric-info-title" id="metricInfoTitle"></p>
+    <p class="metric-info-body"  id="metricInfoBody"></p>
+    <button class="metric-info-close" onclick="hideMetricInfo()">Entendido</button>
   </div>
 </div>
 

@@ -812,6 +812,32 @@ function _hubWidgetShow() {
   try { window.parent.postMessage({ type: 'PHYSIQ_WIDGET_SHOW' }, '*'); } catch (_) {}
 }
 
+// ── Metric info dialog ────────────────────────────────────────────────────────
+const METRIC_INFO = {
+  duration:  { title: 'Duración', body: 'Tiempo de grabación efectivo del sensor. Puede diferir ligeramente de los 30 s nominales si el sistema tardó en iniciar la captura.' },
+  totalSway: { title: 'Sway Total', body: 'Longitud total del trayecto de oscilación en el plano horizontal (AP + ML). Equivale al camino que el centro de presión recorrería en ese plano. Valores menores indican mayor estabilidad.' },
+  hrms:      { title: 'H-RMS — Sway Horizontal', body: 'Raíz cuadrática media del balanceo horizontal combinado (AP + ML). Es el indicador principal de estabilidad postural: valores menores corresponden a mejor equilibrio. Se usa para calcular la puntuación y comparar con el umbral de referencia del test.' },
+  hsd:       { title: 'H-SD — Desviación Estándar Horizontal', body: 'Variabilidad del balanceo horizontal a lo largo del test. Refleja la consistencia del equilibrio: una SD baja indica oscilaciones regulares, mientras que una SD alta puede sugerir estrategias de corrección frecuentes.' },
+  npl:       { title: 'NPL — Longitud de Trayecto Normalizada', body: 'Longitud total del trayecto de oscilación dividida por la duración del test (mG/s). Permite comparar tests de diferente duración y facilita el seguimiento longitudinal del paciente.' },
+  rms:       { title: 'RMS — Raíz Cuadrática Media', body: 'Amplitud media de las oscilaciones en este eje. Un valor bajo indica poco desplazamiento en esa dirección y, por tanto, mejor control en ese plano.' },
+  sd:        { title: 'SD — Desviación Estándar', body: 'Variabilidad de las oscilaciones en este eje durante el test. Valores elevados reflejan mayor irregularidad del balanceo, lo que puede indicar estrategias de corrección frecuentes o menor control motor.' },
+};
+
+function showMetricInfo(key) {
+  const info = METRIC_INFO[key];
+  if (!info) return;
+  document.getElementById('metricInfoTitle').textContent = info.title;
+  document.getElementById('metricInfoBody').textContent  = info.body;
+  document.getElementById('metricInfoDialog').removeAttribute('hidden');
+}
+
+function hideMetricInfo() {
+  document.getElementById('metricInfoDialog').setAttribute('hidden', '');
+}
+
+window.showMetricInfo = showMetricInfo;
+window.hideMetricInfo = hideMetricInfo;
+
 // ── Confirm banner ────────────────────────────────────────────────────────────
 function showConfirmBanner(title, text, actionLabel, onConfirm) {
   const el = document.getElementById('confirmBanner');
