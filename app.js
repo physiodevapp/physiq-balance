@@ -260,27 +260,105 @@ function _renderTestCards() {
     `;
     grid.appendChild(card);
   }
+  _renderInterpretation();
 }
 
-function _stanceIcon(testId) {
-  const t = TESTS[testId];
-  if (t.stance === 'tandem') {
-    return `<svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-      <circle cx="15" cy="3" r="2.5" fill="currentColor"/>
-      <rect x="13" y="6" width="4" height="7" rx="2" fill="currentColor"/>
-      <rect x="13" y="13" width="2" height="7" rx="1" fill="currentColor"/>
-      <rect x="16" y="16" width="2" height="7" rx="1" fill="currentColor"/>
-    </svg>`;
+// ── Interpretation ───────────────────────────────────────────────────────────
+function _computeInterpretation() {
+  const ids = Object.keys(_balanceResults);
+  if (!ids.length) return [];
+
+  const items = [];
+  const get = id => _balanceResults[id];
+  const ftEO = get('ft-eo'), ftEC = get('ft-ec'), tnEO = get('tn-eo');
+
+  // Global profile
+  const scores = ids.map(id => _balanceResults[id].score);
+  const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+  const grade = _getGrade(avg);
+  items.push({
+    color: grade.color,
+    title: `Perfil general: ${grade.label}`,
+    text: avg >= 80
+      ? 'Oscilación postural mínima. Control neuromuscular sobresaliente en las condiciones evaluadas.'
+      : avg >= 60
+      ? 'Equilibrio funcional. La oscilación está dentro del rango normal.'
+      : avg >= 40
+      ? 'Oscilación moderada. El entrenamiento de equilibrio puede mejorar la estabilidad.'
+      : 'Oscilación elevada. Se recomienda trabajo específico de estabilización y valoración más detallada.'
+  });
+
+  // Visual dependency (Romberg-like): EC vs EO, misma posición
+  if (ftEO && ftEC && ftEO.metrics.hRMS > 0.1) {
+    const ratio = ftEC.metrics.hRMS / ftEO.metrics.hRMS;
+    const high = ratio >= 2.5;
+    items.push({
+      color: high ? '#fb923c' : '#38d9a9',
+      title: high ? 'Dependencia visual elevada' : 'Control propioceptivo normal',
+      text: high
+        ? `Al cerrar los ojos la oscilación aumentó ${ratio.toFixed(1)}× (umbral: 2.5×). Posible menor aportación del sistema propioceptivo o vestibular.`
+        : `Al cerrar los ojos la oscilación aumentó ${ratio.toFixed(1)}× (< 2.5×). Los sistemas propioceptivo y vestibular contribuyen bien al equilibrio.`
+    });
   }
-  return `<svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-    <circle cx="16" cy="3" r="2.5" fill="currentColor"/>
-    <rect x="14" y="6" width="4" height="7" rx="2" fill="currentColor"/>
-    <rect x="12" y="13" width="2" height="7" rx="1" fill="currentColor"/>
-    <rect x="18" y="13" width="2" height="7" rx="1" fill="currentColor"/>
-  </svg>`;
+
+  // Base de sustentación: pies juntos vs tándem
+  if (ftEO && tnEO) {
+    const drop = ftEO.score - tnEO.score;
+    items.push({
+      color: drop > 35 ? '#fb923c' : drop > 15 ? '#4f9cf9' : '#38d9a9',
+      title: drop > 35 ? 'Dificultad con base de sustentación reducida'
+           : drop > 15 ? 'Adaptación normal a base reducida'
+           : 'Buena adaptación a base reducida',
+      text: drop > 35
+        ? `El equilibrio bajó ${drop} puntos al pasar a tándem. Trabajar la propiocepción de tobillo y el control de cadera puede mejorar este aspecto.`
+        : drop > 15
+        ? `Descenso de ${drop} puntos al estrechar la base (pies juntos → tándem), dentro de lo esperado.`
+        : `Mínima pérdida de equilibrio al reducir la base (−${drop} pts). Excelente control postural con base estrecha.`
+    });
+  }
+
+  // Dirección dominante del sway (referencia: ft-eo si disponible)
+  const ref = ftEO || _balanceResults[ids[0]];
+  if (ref?.metrics) {
+    const { ap, ml } = ref.metrics;
+    if (ap.rms > 0 && ml.rms > 0) {
+      const r = ap.rms / ml.rms;
+      if (r > 1.6) {
+        items.push({
+          color: '#4f9cf9',
+          title: 'Oscilación predominantemente anteroposterior',
+          text: 'Mayor movimiento hacia adelante y atrás que lateral. Puede relacionarse con la estrategia de tobillo o debilidad en esa dirección.'
+        });
+      } else if (r < 0.625) {
+        items.push({
+          color: '#4f9cf9',
+          title: 'Oscilación predominantemente lateral',
+          text: 'Mayor movimiento de lado a lado que anteroposterior. Puede indicar debilidad de abductores de cadera o asimetría en la carga.'
+        });
+      }
+    }
+  }
+
+  return items;
 }
 
-// ── Setup ──────────────────────────────────────────────────────────────────────
+function _renderInterpretation() {
+  const card = document.getElementById('interpretationCard');
+  if (!card) return;
+  const items = _computeInterpretation();
+  card.hidden = !items.length;
+  if (!items.length) return;
+  const container = document.getElementById('interpretationItems');
+  container.innerHTML = '';
+  for (const item of items) {
+    const el = document.createElement('div');
+    el.className = 'interp-item';
+    el.innerHTML = `<span class="interp-dot" style="background:${item.color}"></span><div class="interp-content"><div class="interp-title">${item.title}</div><div class="interp-text">${item.text}</div></div>`;
+    container.appendChild(el);
+  }
+}
+
+// ── Setup ─────────────────────────────────────────────────────────────────────
 function _openSetup(testId) {
   _testId = testId;
   const t = TESTS[testId];
@@ -290,7 +368,6 @@ function _openSetup(testId) {
   document.getElementById('setupInstruction').textContent = t.instruction;
   document.getElementById('setupTip').textContent      = t.tip;
   document.getElementById('setupDuration').textContent = `Duración: ${t.duration} segundos`;
-  document.getElementById('setupIllustration').innerHTML = _stanceIllustration(t.stance);
 
   const startBtn = document.getElementById('startBtn');
   startBtn.disabled = false;

@@ -408,17 +408,6 @@
       gap: 20px;
     }
 
-    .illustration-wrap {
-      width: 160px;
-      height: 260px;
-      flex-shrink: 0;
-    }
-
-    .illustration-wrap svg {
-      width: 100%;
-      height: 100%;
-    }
-
     .instruction-block {
       text-align: center;
       display: flex;
@@ -443,6 +432,32 @@
       padding: 10px 14px;
       text-align: left;
     }
+
+    /* ── Interpretation card ────────────────────────────────── */
+    .interp-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .interp-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .interp-item:last-child { border-bottom: none; }
+    .interp-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 5px;
+    }
+    .interp-content { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+    .interp-title { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+    .interp-text { font-size: 0.8rem; color: var(--text2); line-height: 1.5; }
 
     .duration-hint {
       font-size: 0.82rem;
@@ -998,6 +1013,14 @@
 
     <!-- Test cards -->
     <div id="testGrid"></div>
+
+    <!-- Interpretation -->
+    <div id="interpretationCard" hidden>
+      <span class="section-label">Interpretación</span>
+      <div class="interp-card">
+        <div id="interpretationItems"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1006,8 +1029,6 @@
 <!-- ══════════════════════════════════════════════════════════════ -->
 <div id="view-setup" hidden>
   <div class="setup-body">
-    <div class="illustration-wrap" id="setupIllustration"></div>
-
     <div class="instruction-block">
       <p class="instruction-text" id="setupInstruction"></p>
       <div class="instruction-tip" id="setupTip"></div>
