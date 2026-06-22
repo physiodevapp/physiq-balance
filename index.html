@@ -329,7 +329,8 @@
 
     /* Patient field */
     .info-row { display: flex; gap: 10px; align-items: flex-end; }
-    .field { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+    .field { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+    .home-section { display: flex; flex-direction: column; gap: 10px; }
     .field-label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; color: var(--text3); text-transform: uppercase; }
     .field-input { background: var(--surface); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 9px 12px; font-family: 'DM Mono', monospace; font-size: 12px; outline: none; transition: border-color 0.2s; width: 100%; }
     .field-input:focus { border-color: var(--accent); }
@@ -1119,10 +1120,11 @@
       Este dispositivo no dispone de acelerómetro. La medición de equilibrio no estará disponible.
     </div>
 
-    <span class="section-label">Condiciones de test</span>
-
-    <!-- Test cards -->
-    <div id="testGrid"></div>
+    <div class="home-section">
+      <span class="section-label">Condiciones de test</span>
+      <!-- Test cards -->
+      <div id="testGrid"></div>
+    </div>
 
     <!-- Interpretation -->
     <div id="interpretationCard" hidden>
