@@ -158,11 +158,8 @@ function _applySessionToUI(session) {
 function _updateSessionChip() {
   const btn = document.getElementById('sessionBtn');
   if (!btn) return;
-  const hasSession = _patient || Object.keys(_balanceResults).length > 0;
-  btn.classList.toggle('active', !!hasSession);
-  _sessionLabel = _patient
-    ? `${_patient} · ${_sessionDate || _todayStr()}`
-    : hasSession ? `Sesión · ${_sessionDate || _todayStr()}` : '';
+  btn.classList.toggle('active', !!_patient);
+  _sessionLabel = _patient ? `${_patient} · ${_sessionDate || _todayStr()}` : '';
 }
 
 let _patientDebounce = null;
