@@ -207,69 +207,106 @@
       line-height: 1;
     }
 
-    .header-back {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: transparent;
-      border: none;
+    /* ── Setup sub-header (sticky bar below main header in setup/testing) ─── */
+    .setup-sub-header {
+      position: fixed;
+      top: 64px; left: 0; right: 0;
+      z-index: 90;
+      height: 44px;
+      padding: 0 1rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
-      justify-content: center;
-      color: var(--text2);
-      flex-shrink: 0;
-      cursor: pointer;
-      transition: background 0.15s;
+      gap: 10px;
+      box-shadow: 0 8px 12px 4px var(--bg);
     }
-    .header-back:active { background: var(--surface2); }
 
-    .header-test-info { flex: 1; padding-left: 8px; }
-    .header-test-title { font-size: 1.05rem; font-weight: 600; color: var(--text); }
-    .header-test-sub   { font-size: 0.78rem; color: var(--text2); }
+    .btn-back-sub {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text2);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .btn-back-sub:hover { border-color: var(--text2); color: var(--text); }
+
+    .active-test-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      color: #22d3ee;
+      border: 1px solid rgba(34,211,238,0.3);
+      background: rgba(34,211,238,0.08);
+      padding: 5px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      max-width: 60%;
+    }
+
+    .test-badge-color {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .test-badge-sep { color: var(--text3); flex-shrink: 0; }
 
     @media (min-width: 769px) { .translate-banner { display: none; } }
     @media (max-width: 768px) {
       .app-header { height: 52px; padding: 0 1rem; }
       .logo-main, .logo-sub { font-size: 1.2rem; }
       .translate-banner { top: 52px; }
-      #view-home, #view-setup, #view-testing { padding-top: 52px; }
-      #countdown-overlay { top: 52px; }
+      .setup-sub-header { top: 52px; }
+      #view-home { padding-top: 52px; }
+      #view-setup, #view-testing { padding-top: calc(52px + 44px); }
+      #countdown-overlay { top: calc(52px + 44px); }
       .btn-translate .translate-tooltip { display: none; }
     }
     @media (max-width: 480px) {
       .app-header { height: 48px; }
       .logo-main, .logo-sub { font-size: 1.1rem; }
       .translate-banner { top: 48px; }
-      #view-home, #view-setup, #view-testing { padding-top: 48px; }
-      #countdown-overlay { top: 48px; }
+      .setup-sub-header { top: 48px; }
+      #view-home { padding-top: 48px; }
+      #view-setup, #view-testing { padding-top: calc(48px + 44px); }
+      #countdown-overlay { top: calc(48px + 44px); }
     }
     @media (max-height: 500px) and (max-width: 900px) {
       .app-header { height: 44px; }
       .translate-banner { top: 44px; }
-      #view-home, #view-setup, #view-testing { padding-top: 44px; }
-      #countdown-overlay { top: 44px; }
+      .setup-sub-header { top: 44px; }
+      #view-home { padding-top: 44px; }
+      #view-setup, #view-testing { padding-top: calc(44px + 44px); }
+      #countdown-overlay { top: calc(44px + 44px); }
     }
     @media (max-width: 360px) {
       .logo-sub-word { display: none; }
       .logo-sub-initial { display: inline; }
     }
 
-    /* Translate banner push — views slide down as banner slides in */
-    #view-home, #view-setup, #view-testing { transition: padding-top 0.25s ease; }
+    /* Translate banner push — only home view needs the push */
+    #view-home { transition: padding-top 0.25s ease; }
     @media (max-width: 768px) {
-      .translate-banner.visible ~ #view-home,
-      .translate-banner.visible ~ #view-setup,
-      .translate-banner.visible ~ #view-testing { padding-top: calc(52px + 36px); }
+      .translate-banner.visible ~ #view-home { padding-top: calc(52px + 36px); }
     }
     @media (max-width: 480px) {
-      .translate-banner.visible ~ #view-home,
-      .translate-banner.visible ~ #view-setup,
-      .translate-banner.visible ~ #view-testing { padding-top: calc(48px + 36px); }
+      .translate-banner.visible ~ #view-home { padding-top: calc(48px + 36px); }
     }
     @media (max-height: 500px) and (max-width: 900px) {
-      .translate-banner.visible ~ #view-home,
-      .translate-banner.visible ~ #view-setup,
-      .translate-banner.visible ~ #view-testing { padding-top: calc(44px + 36px); }
+      .translate-banner.visible ~ #view-home { padding-top: calc(44px + 36px); }
     }
 
     /* ── ════════════════════════════════════════════════════ */
@@ -415,7 +452,7 @@
       display: flex;
       flex-direction: column;
       min-height: 100dvh;
-      padding-top: 64px;
+      padding-top: calc(64px + 44px);
     }
 
     .setup-body {
@@ -506,7 +543,7 @@
     /* ── Countdown overlay ───────────────────────────────── */
     #countdown-overlay {
       position: fixed;
-      top: 64px;
+      top: calc(64px + 44px);
       left: 0; right: 0; bottom: 0;
       background: var(--bg);
       display: flex;
@@ -543,7 +580,7 @@
       display: flex;
       flex-direction: column;
       min-height: 100dvh;
-      padding-top: 64px;
+      padding-top: calc(64px + 44px);
     }
 
     .testing-body {
@@ -1037,15 +1074,6 @@
     <span class="logo-main">PhysiQ</span>
     <span class="logo-sub">— <span class="logo-sub-word">Balance</span><span class="logo-sub-initial" hidden>B</span></span>
   </div>
-  <button class="header-back" id="headerBack" onclick="goBack()" aria-label="Volver" hidden>
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M15 18l-6-6 6-6"/>
-    </svg>
-  </button>
-  <div class="header-test-info" id="headerTestInfo" hidden>
-    <div class="header-test-title" id="setupTitle">Pies Juntos</div>
-    <div class="header-test-sub"   id="setupSubtitle">Ojos Abiertos</div>
-  </div>
   <div class="header-right" id="headerRight">
     <button id="sessionBtn" class="session-btn" onclick="promptClearSession()" aria-label="Sesión activa" title="Sesión activa">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1060,6 +1088,17 @@
 <div class="translate-banner" id="translateBanner">
   🌐 <span>Long-press or right-click → Translate to English</span>
   <button class="translate-banner-close" onclick="hideTranslateBanner()">✕</button>
+</div>
+
+<!-- Setup sub-header: shown in setup/countdown/testing views -->
+<div class="setup-sub-header" id="setupSubHeader" hidden>
+  <button class="btn-back-sub" id="subHeaderBack" onclick="goBack()">← Tests</button>
+  <span class="active-test-badge" id="subHeaderBadge">
+    <span class="test-badge-color" id="subHeaderColor"></span>
+    <span id="subHeaderName"></span>
+    <span class="test-badge-sep">·</span>
+    <span id="subHeaderSub"></span>
+  </span>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════ -->

@@ -80,7 +80,7 @@ const _sessionCh = new BroadcastChannel('physiq-session');
 
 // ── DOM refs (set after DOMContentLoaded) ────────────────────────────────────
 let $viewHome, $viewSetup, $viewTesting, $countdownOverlay, $resultsOverlay;
-let _$headerLogo, _$headerBack, _$headerTest, _$headerRight;
+let _$headerLogo, _$headerRight, _$setupSubHeader, _$subHeaderBack;
 let _translateTimer = null;
 
 // ── Init ─────────────────────────────────────────────────────────────────────
@@ -105,9 +105,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Header DOM refs
   _$headerLogo    = document.getElementById('headerLogo');
-  _$headerBack    = document.getElementById('headerBack');
-  _$headerTest    = document.getElementById('headerTestInfo');
   _$headerRight   = document.getElementById('headerRight');
+  _$setupSubHeader = document.getElementById('setupSubHeader');
+  _$subHeaderBack  = document.getElementById('subHeaderBack');
 
   // Sensor check
   if (typeof DeviceMotionEvent === 'undefined') {
@@ -210,10 +210,10 @@ function _updateHeader(name) {
   const isHome    = name === 'home' || name === 'results';
   const isSetup   = name === 'setup' || name === 'countdown';
   const isTesting = name === 'testing';
-  if (_$headerLogo)  _$headerLogo.hidden  = !isHome;
-  if (_$headerRight) _$headerRight.hidden = !isHome;
-  if (_$headerBack)  _$headerBack.hidden  = !isSetup;
-  if (_$headerTest)  _$headerTest.hidden  = !(isSetup || isTesting);
+  const showSub   = isSetup || isTesting;
+
+  if (_$setupSubHeader) _$setupSubHeader.hidden = !showSub;
+  if (_$subHeaderBack)  _$subHeaderBack.hidden  = isTesting;
 }
 
 // ── View routing ──────────────────────────────────────────────────────────────
@@ -370,8 +370,14 @@ function _openSetup(testId) {
   _testId = testId;
   const t = TESTS[testId];
 
-  document.getElementById('setupTitle').textContent    = t.label;
-  document.getElementById('setupSubtitle').textContent = t.sublabel;
+  // Sub-header badge
+  const nameEl  = document.getElementById('subHeaderName');
+  const subEl   = document.getElementById('subHeaderSub');
+  const colorEl = document.getElementById('subHeaderColor');
+  if (nameEl)  nameEl.textContent  = t.label;
+  if (subEl)   subEl.textContent   = t.sublabel;
+  if (colorEl) colorEl.style.background = t.color;
+
   document.getElementById('setupInstruction').textContent = t.instruction;
   document.getElementById('setupTip').textContent      = t.tip;
   document.getElementById('setupDuration').textContent = `Duración: ${t.duration} segundos`;
