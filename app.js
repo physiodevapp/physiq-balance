@@ -225,12 +225,15 @@ function _showView(name) {
   $countdownOverlay.hidden = (name !== 'countdown');
   $resultsOverlay.hidden   = (name !== 'results');
   _updateHeader(name);
+  if (name === 'setup')     history.pushState({ view: 'setup' }, '');
   if (name === 'countdown') history.pushState({}, '');
 }
 
 window.addEventListener('popstate', () => {
   if (_phase === 'countdown' || _phase === 'testing') {
     history.pushState({}, '');
+  } else if (_phase === 'setup') {
+    _showView('home');
   }
 });
 
@@ -420,6 +423,8 @@ function _stanceIllustration(stance) {
 window.goBack = function () {
   if (_cdTimer) { clearInterval(_cdTimer); _cdTimer = null; }
   _showView('home');
+  // Consume the setup history entry so a subsequent swipe back exits cleanly
+  history.back();
 };
 
 // ── Start test (permission + countdown) ──────────────────────────────────────
