@@ -227,7 +227,9 @@ function _showView(name) {
   _updateHeader(name);
   if (name === 'setup')     history.pushState({ view: 'setup' }, '');
   if (name === 'countdown') history.pushState({}, '');
-  if (name === 'testing')   history.pushState({}, '');
+  if (name === 'testing') {
+    for (let i = 0; i < 5; i++) history.pushState({}, '');
+  }
 }
 
 window.addEventListener('popstate', () => {
