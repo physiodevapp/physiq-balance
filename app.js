@@ -222,17 +222,11 @@ function _showView(name) {
   $countdownOverlay.hidden = (name !== 'countdown');
   $resultsOverlay.hidden   = (name !== 'results');
   _updateHeader(name);
-  if (name === 'setup')     history.pushState({ view: 'setup' }, '');
-  if (name === 'countdown') history.pushState({}, '');
-  if (name === 'testing') {
-    for (let i = 0; i < 5; i++) history.pushState({}, '');
-  }
+  if (name === 'setup') history.pushState({ view: 'setup' }, '');
 }
 
 window.addEventListener('popstate', () => {
-  if (_phase === 'countdown' || _phase === 'testing') {
-    history.pushState({}, '');
-  } else if (_phase === 'setup') {
+  if (_phase === 'setup') {
     _showView('home');
   }
 });
