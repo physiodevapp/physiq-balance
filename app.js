@@ -701,21 +701,21 @@ function _initResultsSwipe() {
   // Swipe-down to dismiss
   const card = document.querySelector('.results-card');
   if (!card) return;
+  const _dragZone = card.querySelector('.results-header');
+  const _handle   = card.querySelector('.sheet-handle');
   let startY = 0, startTime = 0, dragging = false, delta = 0, snapTimer = null;
   const EASE = 'transform 0.3s cubic-bezier(0.32,0.72,0,1)';
 
-  // Listen on header + handle so the full drag area is covered
-  [card.querySelector('.sheet-handle'), card.querySelector('.results-header')].forEach(el => {
-    if (!el) return;
-    el.addEventListener('touchstart', e => {
-      startY = e.touches[0].clientY;
-      startTime = Date.now();
-      delta = 0;
-      dragging = true;
-      clearTimeout(snapTimer);
-      card.style.transition = 'none';
-    }, { passive: true });
-  });
+  card.addEventListener('touchstart', e => {
+    const t = e.target;
+    if (!_dragZone.contains(t) && !_handle.contains(t) && t !== _handle) return;
+    startY = e.touches[0].clientY;
+    startTime = Date.now();
+    delta = 0;
+    dragging = true;
+    clearTimeout(snapTimer);
+    card.style.transition = 'none';
+  }, { passive: true });
 
   card.addEventListener('touchmove', e => {
     if (!dragging) return;
