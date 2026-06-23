@@ -212,6 +212,7 @@ function _updateHeader(name) {
 
 // ── View routing ──────────────────────────────────────────────────────────────
 function _showView(name) {
+  const prevPhase = _phase;
   _phase = name === 'countdown' ? 'countdown' : name;
   const isMeasuring = (name === 'countdown' || name === 'testing');
   $viewHome.hidden          = (name !== 'home');
@@ -220,11 +221,40 @@ function _showView(name) {
   $resultsOverlay.hidden    = (name !== 'results');
   document.body.classList.toggle('measuring', isMeasuring);
   if (isMeasuring) {
-    $msCountdown.hidden = (name !== 'countdown');
-    $msTesting.hidden   = (name !== 'testing');
+    if (name === 'testing' && prevPhase === 'countdown') {
+      _animateCountdownToTesting();
+    } else {
+      $msCountdown.hidden = (name !== 'countdown');
+      $msTesting.hidden   = (name !== 'testing');
+    }
   }
   _updateHeader(name);
   if (name === 'setup') history.pushState({ view: 'setup' }, '');
+}
+
+function _animateCountdownToTesting() {
+  const card = $measurementSheet.querySelector('.measurement-card');
+  const fromH = card.getBoundingClientRect().height;
+
+  card.style.height     = fromH + 'px';
+  card.style.overflow   = 'hidden';
+  card.style.transition = 'none';
+
+  $msCountdown.hidden = true;
+  $msTesting.hidden   = false;
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const toH = card.scrollHeight;
+      card.style.transition = 'height 0.35s cubic-bezier(0.4,0,0.2,1)';
+      card.style.height     = toH + 'px';
+      card.addEventListener('transitionend', () => {
+        card.style.height     = '';
+        card.style.overflow   = '';
+        card.style.transition = '';
+      }, { once: true });
+    });
+  });
 }
 
 window.addEventListener('popstate', (e) => {
