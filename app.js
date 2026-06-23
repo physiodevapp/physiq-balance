@@ -79,7 +79,7 @@ let _swipeStartX    = 0;
 const _sessionCh = new BroadcastChannel('physiq-session');
 
 // ── DOM refs (set after DOMContentLoaded) ────────────────────────────────────
-let $viewHome, $viewSetup, $viewTesting, $countdownOverlay, $resultsOverlay;
+let $viewHome, $viewSetup, $measurementSheet, $msCountdown, $msTesting, $resultsOverlay;
 let _$headerLogo, _$headerRight, _$setupSubHeader, _$subHeaderBack;
 let _translateTimer = null;
 
@@ -87,8 +87,9 @@ let _translateTimer = null;
 document.addEventListener('DOMContentLoaded', async () => {
   $viewHome         = document.getElementById('view-home');
   $viewSetup        = document.getElementById('view-setup');
-  $viewTesting      = document.getElementById('view-testing');
-  $countdownOverlay = document.getElementById('countdown-overlay');
+  $measurementSheet = document.getElementById('measurement-sheet');
+  $msCountdown      = document.getElementById('msCountdown');
+  $msTesting        = document.getElementById('msTesting');
   $resultsOverlay   = document.getElementById('results-overlay');
 
   // Hub integration
@@ -216,11 +217,16 @@ function _updateHeader(name) {
 // ── View routing ──────────────────────────────────────────────────────────────
 function _showView(name) {
   _phase = name === 'countdown' ? 'countdown' : name;
-  $viewHome.hidden         = (name !== 'home');
-  $viewSetup.hidden        = (name !== 'setup' && name !== 'countdown');
-  $viewTesting.hidden      = (name !== 'testing');
-  $countdownOverlay.hidden = (name !== 'countdown');
-  $resultsOverlay.hidden   = (name !== 'results');
+  const isMeasuring = (name === 'countdown' || name === 'testing');
+  $viewHome.hidden          = (name !== 'home');
+  $viewSetup.hidden         = !['setup', 'countdown', 'testing'].includes(name);
+  $measurementSheet.hidden  = !isMeasuring;
+  $resultsOverlay.hidden    = (name !== 'results');
+  document.body.classList.toggle('measuring', isMeasuring);
+  if (isMeasuring) {
+    $msCountdown.hidden = (name !== 'countdown');
+    $msTesting.hidden   = (name !== 'testing');
+  }
   _updateHeader(name);
   if (name === 'setup') history.pushState({ view: 'setup' }, '');
 }
