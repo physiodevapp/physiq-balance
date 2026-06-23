@@ -699,17 +699,18 @@ function _initResultsSwipe() {
   });
 
   // Swipe-down to dismiss
-  const card = document.querySelector('.results-card');
-  if (!card) return;
-  const _dragZone = card.querySelector('.results-header');
-  const _handle   = card.querySelector('.sheet-handle');
+  const overlay = document.getElementById('results-overlay');
+  const card    = overlay.querySelector('.results-card');
+  if (!overlay || !card) return;
   let startY = 0, startTime = 0, dragging = false, delta = 0, snapTimer = null;
   const EASE = 'transform 0.3s cubic-bezier(0.32,0.72,0,1)';
 
-  card.addEventListener('touchstart', e => {
-    const t = e.target;
-    if (!_dragZone.contains(t) && !_handle.contains(t) && t !== _handle) return;
-    startY = e.touches[0].clientY;
+  overlay.addEventListener('touchstart', e => {
+    const rect = card.getBoundingClientRect();
+    const y    = e.touches[0].clientY;
+    // Only activate for touches in the top ~200px of the card (handle + header)
+    if (y < rect.top || y > rect.top + 200) return;
+    startY = y;
     startTime = Date.now();
     delta = 0;
     dragging = true;
@@ -717,11 +718,12 @@ function _initResultsSwipe() {
     card.style.transition = 'none';
   }, { passive: true });
 
-  card.addEventListener('touchmove', e => {
+  overlay.addEventListener('touchmove', e => {
     if (!dragging) return;
+    e.preventDefault();
     delta = Math.max(0, e.touches[0].clientY - startY);
-    card.style.transform = delta > 0 ? `translateY(${delta}px)` : 'translateY(0)';
-  }, { passive: true });
+    card.style.transform = `translateY(${delta}px)`;
+  }, { passive: false });
 
   function onRelease() {
     if (!dragging) return;
@@ -745,8 +747,8 @@ function _initResultsSwipe() {
     }
   }
 
-  card.addEventListener('touchend', onRelease, { passive: true });
-  card.addEventListener('touchcancel', () => {
+  overlay.addEventListener('touchend',   onRelease, { passive: true });
+  overlay.addEventListener('touchcancel', () => {
     if (!dragging) return;
     dragging = false;
     card.style.transform = '';
