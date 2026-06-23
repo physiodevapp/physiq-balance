@@ -127,6 +127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   _renderTestCards();
   _updateSessionChip();
   _showView('home');
+  history.replaceState({ view: 'home' }, '');
 
   // BroadcastChannel
   _sessionCh.onmessage = _handleBC;
@@ -225,8 +226,10 @@ function _showView(name) {
   if (name === 'setup') history.pushState({ view: 'setup' }, '');
 }
 
-window.addEventListener('popstate', () => {
+window.addEventListener('popstate', (e) => {
   if (_phase === 'setup') {
+    _showView('home');
+  } else if (e.state?.view === 'home' && _phase !== 'home') {
     _showView('home');
   }
 });
