@@ -80,7 +80,7 @@ const _sessionCh = new BroadcastChannel('physiq-session');
 
 // ── DOM refs (set after DOMContentLoaded) ────────────────────────────────────
 let $viewHome, $viewSetup, $measurementSheet, $msCountdown, $msTesting, $resultsOverlay;
-let _$headerLogo, _$headerRight, _$setupSubHeader, _$subHeaderBack;
+let _$headerLogo, _$headerRight, _$setupSubHeader;
 let _translateTimer = null;
 
 // ── Init ─────────────────────────────────────────────────────────────────────
@@ -105,10 +105,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Header DOM refs
-  _$headerLogo    = document.getElementById('headerLogo');
-  _$headerRight   = document.getElementById('headerRight');
+  _$headerLogo     = document.getElementById('headerLogo');
+  _$headerRight    = document.getElementById('headerRight');
   _$setupSubHeader = document.getElementById('setupSubHeader');
-  _$subHeaderBack  = document.getElementById('subHeaderBack');
 
   // Sensor check
   if (typeof DeviceMotionEvent === 'undefined') {
@@ -205,13 +204,8 @@ function _handleBC(e) {
 
 // ── Header state ─────────────────────────────────────────────────────────────
 function _updateHeader(name) {
-  const isHome    = name === 'home' || name === 'results';
-  const isSetup   = name === 'setup' || name === 'countdown';
-  const isTesting = name === 'testing';
-  const showSub   = isSetup || isTesting;
-
+  const showSub = (name === 'setup' || name === 'countdown' || name === 'testing');
   if (_$setupSubHeader) _$setupSubHeader.hidden = !showSub;
-  if (_$subHeaderBack)  _$subHeaderBack.hidden  = isTesting;
 }
 
 // ── View routing ──────────────────────────────────────────────────────────────
