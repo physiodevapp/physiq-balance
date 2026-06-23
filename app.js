@@ -229,6 +229,9 @@ function _showView(name) {
 window.addEventListener('popstate', (e) => {
   if (_phase === 'setup') {
     _showView('home');
+  } else if (_phase === 'countdown' || _phase === 'testing') {
+    _abortMeasurement();
+    _showView('home');
   } else if (e.state?.view === 'home' && _phase !== 'home') {
     _showView('home');
   }
@@ -419,8 +422,16 @@ function _stanceIllustration(stance) {
   </svg>`;
 }
 
+function _abortMeasurement() {
+  if (_cdTimer)   { clearInterval(_cdTimer);   _cdTimer   = null; }
+  if (_testTimer) { clearInterval(_testTimer); _testTimer = null; }
+  if (_sampleInt) { _stopSensor(); }
+  _samples    = [];
+  _lastResult = null;
+}
+
 window.goBack = function () {
-  if (_cdTimer) { clearInterval(_cdTimer); _cdTimer = null; }
+  _abortMeasurement();
   _showView('home');
   // Consume the setup history entry so a subsequent swipe back exits cleanly
   history.back();
