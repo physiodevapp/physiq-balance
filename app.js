@@ -239,6 +239,7 @@ function _renderTestCards() {
   const grid = document.getElementById('testGrid');
   if (!grid) return;
   grid.innerHTML = '';
+  let _cardIdx = 0;
   for (const [id, t] of Object.entries(TESTS)) {
     const saved = _balanceResults[id];
     const score = saved ? saved.score : null;
@@ -247,6 +248,7 @@ function _renderTestCards() {
     card.className = 'test-card';
     card.dataset.testId = id;
     card.style.setProperty('--card-accent', t.color);
+    card.style.animationDelay = (_cardIdx++ * 0.05) + 's';
     card.addEventListener('click', () => _openSetup(id));
 
     const diffDots = Array.from({ length: 4 }, (_, i) =>
