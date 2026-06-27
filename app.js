@@ -301,15 +301,22 @@ function _renderTestCards() {
 
     const scoreHtml = score !== null
       ? `<span class="card-score" style="color:${_gradeColor(score)}">${score}<small>/100</small></span>`
-      : `<span class="card-score-empty">—</span>`;
+      : `<span class="card-score-empty">—<small>/100</small></span>`;
+
+    const clearBtn = score !== null
+      ? `<span role="button" class="btn-clear" onclick="event.stopPropagation();clearTestResult('${id}')">✕</span>`
+      : '';
 
     card.innerHTML = `
-      <div class="card-top">
-        ${scoreHtml}
-      </div>
       <div class="card-label">${t.label}</div>
-      <div class="card-sublabel">${t.sublabel}</div>
-      <div class="diff-dots">${diffDots}</div>
+      <div class="card-sub-row">
+        <span class="card-sublabel">${t.sublabel}</span>
+        <div class="diff-dots">${diffDots}</div>
+      </div>
+      <div class="card-bottom">
+        ${scoreHtml}
+        ${clearBtn}
+      </div>
     `;
     grid.appendChild(card);
   }
@@ -969,6 +976,25 @@ window.promptSoftResetBalance = function () {
       _updateResetBtn();
       await updateSession({ balance: {} });
       _sessionCh.postMessage({ type: 'SESSION_BALANCE', balance: {} });
+    }
+  );
+};
+
+// ── Clear single test result ──────────────────────────────────────────────────
+window.clearTestResult = function (testId) {
+  _hubWidgetHide();
+  showConfirmBanner(
+    'Borrar medición',
+    `Se eliminará el resultado de ${TESTS[testId]?.label || testId}.`,
+    'Borrar',
+    async () => {
+      _hubWidgetShow();
+      delete _balanceResults[testId];
+      _renderTestCards();
+      _updateSessionChip();
+      _updateResetBtn();
+      await updateSession({ balance: _balanceResults });
+      _sessionCh.postMessage({ type: 'SESSION_BALANCE', balance: _balanceResults });
     }
   );
 };

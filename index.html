@@ -397,39 +397,18 @@
 
     .test-card:active { background: var(--surface2); }
 
-    .card-top {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 4px;
-    }
-
-    .card-icon {
-      color: var(--card-accent, var(--accent2));
-      display: flex;
-      align-items: center;
-    }
-
-    .card-score {
-      font-family: 'DM Mono', monospace;
-      font-size: 1.15rem;
-      font-weight: 500;
-      color: var(--accent2);
-    }
-
-    .card-score small { font-size: 0.65rem; color: var(--text2); }
-
-    .card-score-empty {
-      font-family: 'DM Mono', monospace;
-      font-size: 1rem;
-      color: var(--border);
-    }
-
     .card-label {
       font-size: 0.88rem;
       font-weight: 600;
       color: var(--text);
       line-height: 1.2;
+    }
+
+    .card-sub-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
     }
 
     .card-sublabel {
@@ -440,7 +419,7 @@
     .diff-dots {
       display: flex;
       gap: 3px;
-      margin-top: 2px;
+      flex-shrink: 0;
     }
 
     .diff-dot {
@@ -452,6 +431,50 @@
 
     .diff-dot.filled {
       background: var(--card-accent, var(--accent2));
+    }
+
+    .card-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 2px;
+    }
+
+    .card-score {
+      font-family: 'DM Mono', monospace;
+      font-size: 1rem;
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    .card-score small { font-size: 0.65rem; color: var(--text2); }
+
+    .card-score-empty {
+      font-family: 'DM Mono', monospace;
+      font-size: 1rem;
+      color: var(--border);
+      line-height: 1;
+    }
+
+    .card-score-empty small { font-size: 0.65rem; }
+
+    .btn-clear {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text2);
+      border-radius: 6px;
+      padding: 4px 7px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      flex-shrink: 0;
+      line-height: 1;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-clear:hover, .btn-clear:active {
+      border-color: rgba(239,68,68,0.5);
+      color: var(--danger);
     }
 
     /* ── ════════════════════════════════════════════════════ */
