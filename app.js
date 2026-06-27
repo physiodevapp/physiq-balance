@@ -144,9 +144,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     patientInput.addEventListener('input', _onPatientInput);
   }
 
-  // Setup swipe on results pages
   _initResultsSwipe();
-  _initMeasurementSheetSwipe();
+  _initSwipeDismiss('measurement-sheet', '.measurement-card', 72, () => {
+    if (_phase === 'testing') stopTest(); else goBack();
+  });
+  _initSwipeDismiss('results-overlay', '.results-card', 200, discardResult);
 });
 
 // ── Session helpers ───────────────────────────────────────────────────────────
@@ -441,35 +443,6 @@ function _openSetup(testId) {
   _showView('setup');
 }
 
-function _stanceIllustration(stance) {
-  if (stance === 'tandem') {
-    return `<svg viewBox="0 0 160 260" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="80" cy="28" r="22" stroke="var(--accent2)" stroke-width="2.5"/>
-      <rect x="68" y="52" width="24" height="60" rx="12" stroke="var(--accent2)" stroke-width="2.5"/>
-      <path d="M68 68 Q50 78 54 96" stroke="var(--accent2)" stroke-width="3" stroke-linecap="round"/>
-      <path d="M92 68 Q110 78 106 96" stroke="var(--accent2)" stroke-width="3" stroke-linecap="round"/>
-      <rect x="72" y="86" width="16" height="26" rx="4" fill="var(--accent2)" opacity="0.9"/>
-      <rect x="76" y="90" width="8" height="18" rx="2" fill="var(--bg)" opacity="0.6"/>
-      <rect x="75" y="112" width="9" height="56" rx="4.5" stroke="var(--accent2)" stroke-width="2.5"/>
-      <rect x="78" y="144" width="9" height="56" rx="4.5" stroke="var(--accent2)" stroke-width="2.5"/>
-      <path d="M62 172 Q80 168 98 172" stroke="var(--accent2)" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
-      <path d="M62 202 Q80 198 98 202" stroke="var(--accent2)" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
-    </svg>`;
-  }
-  return `<svg viewBox="0 0 160 260" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="80" cy="28" r="22" stroke="var(--accent2)" stroke-width="2.5"/>
-    <rect x="68" y="52" width="24" height="60" rx="12" stroke="var(--accent2)" stroke-width="2.5"/>
-    <path d="M68 68 Q50 78 54 96" stroke="var(--accent2)" stroke-width="3" stroke-linecap="round"/>
-    <path d="M92 68 Q110 78 106 96" stroke="var(--accent2)" stroke-width="3" stroke-linecap="round"/>
-    <rect x="72" y="86" width="16" height="26" rx="4" fill="var(--accent2)" opacity="0.9"/>
-    <rect x="76" y="90" width="8" height="18" rx="2" fill="var(--bg)" opacity="0.6"/>
-    <rect x="70" y="112" width="10" height="58" rx="5" stroke="var(--accent2)" stroke-width="2.5"/>
-    <rect x="80" y="112" width="10" height="58" rx="5" stroke="var(--accent2)" stroke-width="2.5"/>
-    <ellipse cx="75" cy="176" rx="18" ry="7" stroke="var(--accent2)" stroke-width="2.5"/>
-    <ellipse cx="85" cy="176" rx="18" ry="7" stroke="var(--accent2)" stroke-width="2.5"/>
-  </svg>`;
-}
-
 function _abortMeasurement() {
   if (_cdTimer)   { clearInterval(_cdTimer);   _cdTimer   = null; }
   if (_testTimer) { clearInterval(_testTimer); _testTimer = null; }
@@ -728,10 +701,10 @@ function _fmt1(v) {
   return typeof v === 'number' ? v.toFixed(1) : '—';
 }
 
-// ── Measurement sheet swipe-down to dismiss ───────────────────────────────────
-function _initMeasurementSheetSwipe() {
-  const overlay = document.getElementById('measurement-sheet');
-  const card    = overlay && overlay.querySelector('.measurement-card');
+// ── Swipe-down to dismiss ─────────────────────────────────────────────────────
+function _initSwipeDismiss(overlayId, cardSel, hitZone, onDismiss) {
+  const overlay = document.getElementById(overlayId);
+  const card    = overlay && overlay.querySelector(cardSel);
   if (!overlay || !card) return;
 
   let startY = 0, startTime = 0, dragging = false, delta = 0, snapTimer = null;
@@ -740,7 +713,7 @@ function _initMeasurementSheetSwipe() {
   overlay.addEventListener('touchstart', e => {
     const rect = card.getBoundingClientRect();
     const y    = e.touches[0].clientY;
-    if (y < rect.top || y > rect.top + 72) return;
+    if (y < rect.top || y > rect.top + hitZone) return;
     startY = y;
     startTime = Date.now();
     delta = 0;
@@ -766,8 +739,7 @@ function _initMeasurementSheetSwipe() {
       setTimeout(() => {
         card.style.transition = 'none';
         card.style.transform = '';
-        if (_phase === 'testing') stopTest();
-        else goBack();
+        onDismiss();
       }, 300);
     } else {
       card.style.transition = EASE;
@@ -801,67 +773,9 @@ function _initResultsSwipe() {
     _updateResultsPage();
   }, { passive: true });
 
-  // Dot click
   document.querySelectorAll('.page-dot').forEach((dot, i) => {
     dot.addEventListener('click', () => { _resultsPage = i; _updateResultsPage(); });
   });
-
-  // Swipe-down to dismiss
-  const overlay = document.getElementById('results-overlay');
-  const card    = overlay.querySelector('.results-card');
-  if (!overlay || !card) return;
-  let startY = 0, startTime = 0, dragging = false, delta = 0, snapTimer = null;
-  const EASE = 'transform 0.3s cubic-bezier(0.32,0.72,0,1)';
-
-  overlay.addEventListener('touchstart', e => {
-    const rect = card.getBoundingClientRect();
-    const y    = e.touches[0].clientY;
-    // Only activate for touches in the top ~200px of the card (handle + header)
-    if (y < rect.top || y > rect.top + 200) return;
-    startY = y;
-    startTime = Date.now();
-    delta = 0;
-    dragging = true;
-    clearTimeout(snapTimer);
-    card.style.transition = 'none';
-  }, { passive: true });
-
-  overlay.addEventListener('touchmove', e => {
-    if (!dragging) return;
-    e.preventDefault();
-    delta = Math.max(0, e.touches[0].clientY - startY);
-    card.style.transform = `translateY(${delta}px)`;
-  }, { passive: false });
-
-  function onRelease() {
-    if (!dragging) return;
-    dragging = false;
-    const velocity = delta / (Date.now() - startTime);
-    if (delta > 80 || velocity > 0.3) {
-      card.style.transition = EASE;
-      card.style.transform = 'translateY(110%)';
-      setTimeout(() => {
-        card.style.transition = 'none';
-        card.style.transform = '';
-        discardResult();
-      }, 300);
-    } else {
-      card.style.transition = EASE;
-      card.style.transform = 'translateY(0)';
-      snapTimer = setTimeout(() => {
-        card.style.transform = '';
-        card.style.transition = '';
-      }, 310);
-    }
-  }
-
-  overlay.addEventListener('touchend',   onRelease, { passive: true });
-  overlay.addEventListener('touchcancel', () => {
-    if (!dragging) return;
-    dragging = false;
-    card.style.transform = '';
-    card.style.transition = '';
-  }, { passive: true });
 }
 
 function _updateResultsPage() {

@@ -14,6 +14,7 @@
     [hidden] { display: none !important; }
 
     :root {
+      --header-h: 64px;
       --bg:       #0a0d12;
       --surface:  #111620;
       --surface2: #171e2e;
@@ -55,7 +56,7 @@
       position: fixed;
       top: 0; left: 0; right: 0;
       z-index: 100;
-      height: 64px;
+      height: var(--header-h);
       padding: 0 1.25rem;
       border-bottom: 1px solid var(--border);
       display: flex;
@@ -188,7 +189,7 @@
 
     .translate-banner {
       position: fixed;
-      top: 64px;
+      top: var(--header-h);
       left: 0; right: 0;
       z-index: 50;
       background: var(--surface2);
@@ -220,7 +221,7 @@
     /* ── Setup sub-header (sticky bar below main header in setup/testing) ─── */
     .setup-sub-header {
       position: fixed;
-      top: 64px; left: 0; right: 0;
+      top: var(--header-h); left: 0; right: 0;
       z-index: 90;
       height: 44px;
       padding: 0 1rem;
@@ -276,45 +277,25 @@
 
     @media (min-width: 769px) { .translate-banner { display: none; } }
     @media (max-width: 768px) {
-      .app-header { height: 52px; padding: 0 1rem; }
+      :root { --header-h: 52px; }
+      .app-header { padding: 0 1rem; }
       .logo-main, .logo-sub { font-size: 1.2rem; }
-      .translate-banner { top: 52px; }
-      .setup-sub-header { top: 52px; }
-      #view-home { padding-top: 52px; }
-      #view-setup { padding-top: calc(52px + 44px); }
       .btn-translate .translate-tooltip { display: none; }
     }
     @media (max-width: 480px) {
-      .app-header { height: 48px; }
+      :root { --header-h: 48px; }
       .logo-main, .logo-sub { font-size: 1.1rem; }
-      .translate-banner { top: 48px; }
-      .setup-sub-header { top: 48px; }
-      #view-home { padding-top: 48px; }
-      #view-setup { padding-top: calc(48px + 44px); }
     }
     @media (max-height: 500px) and (max-width: 900px) {
-      .app-header { height: 44px; }
-      .translate-banner { top: 44px; }
-      .setup-sub-header { top: 44px; }
-      #view-home { padding-top: 44px; }
-      #view-setup { padding-top: calc(44px + 44px); }
+      :root { --header-h: 44px; }
     }
     @media (max-width: 360px) {
       .logo-sub-word { display: none; }
       .logo-sub-initial { display: inline; }
     }
 
-    /* Translate banner push — only home view needs the push */
-    #view-home { transition: padding-top 0.25s ease; }
-    @media (max-width: 768px) {
-      .translate-banner.visible ~ #view-home { padding-top: calc(52px + 36px); }
-    }
-    @media (max-width: 480px) {
-      .translate-banner.visible ~ #view-home { padding-top: calc(48px + 36px); }
-    }
-    @media (max-height: 500px) and (max-width: 900px) {
-      .translate-banner.visible ~ #view-home { padding-top: calc(44px + 36px); }
-    }
+    /* Translate banner push */
+    .translate-banner.visible ~ #view-home { padding-top: calc(var(--header-h) + 36px); }
 
     /* ── ════════════════════════════════════════════════════ */
     /* ── VIEW: HOME ─────────────────────────────────────── */
@@ -323,7 +304,8 @@
       display: flex;
       flex-direction: column;
       min-height: 100dvh;
-      padding-top: 64px;
+      padding-top: var(--header-h);
+      transition: padding-top 0.25s ease;
     }
 
     .home-body {
@@ -487,7 +469,7 @@
       display: flex;
       flex-direction: column;
       min-height: 100dvh;
-      padding-top: calc(64px + 44px);
+      padding-top: calc(var(--header-h) + 44px);
     }
 
     .setup-body {
