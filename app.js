@@ -79,16 +79,17 @@ let _swipeStartX    = 0;
 const _sessionCh = new BroadcastChannel('physiq-session');
 
 // ── DOM refs (set after DOMContentLoaded) ────────────────────────────────────
-let $viewHome, $viewSetup, $viewTesting, $countdownOverlay, $resultsOverlay;
-let _$headerLogo, _$headerRight, _$setupSubHeader, _$subHeaderBack;
+let $viewHome, $viewSetup, $measurementSheet, $msCountdown, $msTesting, $resultsOverlay;
+let _$headerLogo, _$headerRight, _$setupSubHeader;
 let _translateTimer = null;
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   $viewHome         = document.getElementById('view-home');
   $viewSetup        = document.getElementById('view-setup');
-  $viewTesting      = document.getElementById('view-testing');
-  $countdownOverlay = document.getElementById('countdown-overlay');
+  $measurementSheet = document.getElementById('measurement-sheet');
+  $msCountdown      = document.getElementById('msCountdown');
+  $msTesting        = document.getElementById('msTesting');
   $resultsOverlay   = document.getElementById('results-overlay');
 
   // Hub integration
@@ -104,10 +105,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Header DOM refs
-  _$headerLogo    = document.getElementById('headerLogo');
-  _$headerRight   = document.getElementById('headerRight');
+  _$headerLogo     = document.getElementById('headerLogo');
+  _$headerRight    = document.getElementById('headerRight');
   _$setupSubHeader = document.getElementById('setupSubHeader');
-  _$subHeaderBack  = document.getElementById('subHeaderBack');
 
   // Sensor check
   if (typeof DeviceMotionEvent === 'undefined') {
@@ -127,6 +127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   _renderTestCards();
   _updateSessionChip();
   _showView('home');
+  history.replaceState({ view: 'home' }, '');
 
   // BroadcastChannel
   _sessionCh.onmessage = _handleBC;
@@ -143,8 +144,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     patientInput.addEventListener('input', _onPatientInput);
   }
 
-  // Setup swipe on results pages
   _initResultsSwipe();
+  _initSwipeDismiss('measurement-sheet', '.measurement-card', 72, () => {
+    if (_phase === 'testing') stopTest(); else goBack();
+  });
+  _initSwipeDismiss('results-overlay', '.results-card', 200, discardResult);
 });
 
 // ── Session helpers ───────────────────────────────────────────────────────────
@@ -196,6 +200,16 @@ function _handleBC(e) {
     const inp = document.getElementById('patientInput');
     if (inp) inp.value = _patient;
     _updateSessionChip();
+    return;
+  }
+  if (msg.type === 'SESSION_BALANCE') {
+    _balanceResults = (msg.balance && Object.keys(msg.balance).length > 0)
+      ? { ...msg.balance }
+      : {};
+    _renderTestCards();
+    _updateSessionChip();
+    _updateResetBtn();
+    return;
   }
   if (msg.type === 'SESSION_CLEAR') {
     _softReset();
@@ -204,29 +218,64 @@ function _handleBC(e) {
 
 // ── Header state ─────────────────────────────────────────────────────────────
 function _updateHeader(name) {
-  const isHome    = name === 'home' || name === 'results';
-  const isSetup   = name === 'setup' || name === 'countdown';
-  const isTesting = name === 'testing';
-  const showSub   = isSetup || isTesting;
-
+  const showSub = (name === 'setup' || name === 'countdown' || name === 'testing');
   if (_$setupSubHeader) _$setupSubHeader.hidden = !showSub;
-  if (_$subHeaderBack)  _$subHeaderBack.hidden  = isTesting;
 }
 
 // ── View routing ──────────────────────────────────────────────────────────────
 function _showView(name) {
+  const prevPhase = _phase;
   _phase = name === 'countdown' ? 'countdown' : name;
-  $viewHome.hidden         = (name !== 'home');
-  $viewSetup.hidden        = (name !== 'setup' && name !== 'countdown');
-  $viewTesting.hidden      = (name !== 'testing');
-  $countdownOverlay.hidden = (name !== 'countdown');
-  $resultsOverlay.hidden   = (name !== 'results');
+  const isMeasuring = (name === 'countdown' || name === 'testing');
+  $viewHome.hidden          = (name !== 'home');
+  $viewSetup.hidden         = !['setup', 'countdown', 'testing'].includes(name);
+  $measurementSheet.hidden  = !isMeasuring;
+  $resultsOverlay.hidden    = (name !== 'results');
+  document.body.classList.toggle('measuring', isMeasuring);
+  if (isMeasuring) {
+    if (name === 'testing' && prevPhase === 'countdown') {
+      _animateCountdownToTesting();
+    } else {
+      $msCountdown.hidden = (name !== 'countdown');
+      $msTesting.hidden   = (name !== 'testing');
+    }
+  }
   _updateHeader(name);
   if (name === 'setup') history.pushState({ view: 'setup' }, '');
 }
 
-window.addEventListener('popstate', () => {
+function _animateCountdownToTesting() {
+  const card = $measurementSheet.querySelector('.measurement-card');
+  const fromH = card.getBoundingClientRect().height;
+
+  card.style.height     = fromH + 'px';
+  card.style.overflow   = 'hidden';
+  card.style.transition = 'none';
+
+  $msCountdown.hidden = true;
+  $msTesting.hidden   = false;
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const toH = card.scrollHeight;
+      card.style.transition = 'height 0.35s cubic-bezier(0.4,0,0.2,1)';
+      card.style.height     = toH + 'px';
+      card.addEventListener('transitionend', () => {
+        card.style.height     = '';
+        card.style.overflow   = '';
+        card.style.transition = '';
+      }, { once: true });
+    });
+  });
+}
+
+window.addEventListener('popstate', (e) => {
   if (_phase === 'setup') {
+    _showView('home');
+  } else if (_phase === 'countdown' || _phase === 'testing') {
+    _abortMeasurement();
+    _showView('home');
+  } else if (e.state?.view === 'home' && _phase !== 'home') {
     _showView('home');
   }
 });
@@ -236,6 +285,7 @@ function _renderTestCards() {
   const grid = document.getElementById('testGrid');
   if (!grid) return;
   grid.innerHTML = '';
+  let _cardIdx = 0;
   for (const [id, t] of Object.entries(TESTS)) {
     const saved = _balanceResults[id];
     const score = saved ? saved.score : null;
@@ -244,6 +294,7 @@ function _renderTestCards() {
     card.className = 'test-card';
     card.dataset.testId = id;
     card.style.setProperty('--card-accent', t.color);
+    card.style.animationDelay = (_cardIdx++ * 0.05) + 's';
     card.addEventListener('click', () => _openSetup(id));
 
     const diffDots = Array.from({ length: 4 }, (_, i) =>
@@ -252,15 +303,22 @@ function _renderTestCards() {
 
     const scoreHtml = score !== null
       ? `<span class="card-score" style="color:${_gradeColor(score)}">${score}<small>/100</small></span>`
-      : `<span class="card-score-empty">—</span>`;
+      : `<span class="card-score-empty">—<small>/100</small></span>`;
+
+    const clearBtn = score !== null
+      ? `<span role="button" class="btn-clear" onclick="event.stopPropagation();clearTestResult('${id}')">✕</span>`
+      : '';
 
     card.innerHTML = `
-      <div class="card-top">
-        ${scoreHtml}
-      </div>
       <div class="card-label">${t.label}</div>
-      <div class="card-sublabel">${t.sublabel}</div>
-      <div class="diff-dots">${diffDots}</div>
+      <div class="card-sub-row">
+        <span class="card-sublabel">${t.sublabel}</span>
+        <div class="diff-dots">${diffDots}</div>
+      </div>
+      <div class="card-bottom">
+        ${scoreHtml}
+        ${clearBtn}
+      </div>
     `;
     grid.appendChild(card);
   }
@@ -385,37 +443,16 @@ function _openSetup(testId) {
   _showView('setup');
 }
 
-function _stanceIllustration(stance) {
-  if (stance === 'tandem') {
-    return `<svg viewBox="0 0 160 260" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="80" cy="28" r="22" stroke="var(--accent2)" stroke-width="2.5"/>
-      <rect x="68" y="52" width="24" height="60" rx="12" stroke="var(--accent2)" stroke-width="2.5"/>
-      <path d="M68 68 Q50 78 54 96" stroke="var(--accent2)" stroke-width="3" stroke-linecap="round"/>
-      <path d="M92 68 Q110 78 106 96" stroke="var(--accent2)" stroke-width="3" stroke-linecap="round"/>
-      <rect x="72" y="86" width="16" height="26" rx="4" fill="var(--accent2)" opacity="0.9"/>
-      <rect x="76" y="90" width="8" height="18" rx="2" fill="var(--bg)" opacity="0.6"/>
-      <rect x="75" y="112" width="9" height="56" rx="4.5" stroke="var(--accent2)" stroke-width="2.5"/>
-      <rect x="78" y="144" width="9" height="56" rx="4.5" stroke="var(--accent2)" stroke-width="2.5"/>
-      <path d="M62 172 Q80 168 98 172" stroke="var(--accent2)" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
-      <path d="M62 202 Q80 198 98 202" stroke="var(--accent2)" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
-    </svg>`;
-  }
-  return `<svg viewBox="0 0 160 260" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="80" cy="28" r="22" stroke="var(--accent2)" stroke-width="2.5"/>
-    <rect x="68" y="52" width="24" height="60" rx="12" stroke="var(--accent2)" stroke-width="2.5"/>
-    <path d="M68 68 Q50 78 54 96" stroke="var(--accent2)" stroke-width="3" stroke-linecap="round"/>
-    <path d="M92 68 Q110 78 106 96" stroke="var(--accent2)" stroke-width="3" stroke-linecap="round"/>
-    <rect x="72" y="86" width="16" height="26" rx="4" fill="var(--accent2)" opacity="0.9"/>
-    <rect x="76" y="90" width="8" height="18" rx="2" fill="var(--bg)" opacity="0.6"/>
-    <rect x="70" y="112" width="10" height="58" rx="5" stroke="var(--accent2)" stroke-width="2.5"/>
-    <rect x="80" y="112" width="10" height="58" rx="5" stroke="var(--accent2)" stroke-width="2.5"/>
-    <ellipse cx="75" cy="176" rx="18" ry="7" stroke="var(--accent2)" stroke-width="2.5"/>
-    <ellipse cx="85" cy="176" rx="18" ry="7" stroke="var(--accent2)" stroke-width="2.5"/>
-  </svg>`;
+function _abortMeasurement() {
+  if (_cdTimer)   { clearInterval(_cdTimer);   _cdTimer   = null; }
+  if (_testTimer) { clearInterval(_testTimer); _testTimer = null; }
+  if (_sampleInt) { _stopSensor(); }
+  _samples    = [];
+  _lastResult = null;
 }
 
 window.goBack = function () {
-  if (_cdTimer) { clearInterval(_cdTimer); _cdTimer = null; }
+  _abortMeasurement();
   _showView('home');
   // Consume the setup history entry so a subsequent swipe back exits cleanly
   history.back();
@@ -664,6 +701,65 @@ function _fmt1(v) {
   return typeof v === 'number' ? v.toFixed(1) : '—';
 }
 
+// ── Swipe-down to dismiss ─────────────────────────────────────────────────────
+function _initSwipeDismiss(overlayId, cardSel, hitZone, onDismiss) {
+  const overlay = document.getElementById(overlayId);
+  const card    = overlay && overlay.querySelector(cardSel);
+  if (!overlay || !card) return;
+
+  let startY = 0, startTime = 0, dragging = false, delta = 0, snapTimer = null;
+  const EASE = 'transform 0.3s cubic-bezier(0.32,0.72,0,1)';
+
+  overlay.addEventListener('touchstart', e => {
+    const rect = card.getBoundingClientRect();
+    const y    = e.touches[0].clientY;
+    if (y < rect.top || y > rect.top + hitZone) return;
+    startY = y;
+    startTime = Date.now();
+    delta = 0;
+    dragging = true;
+    clearTimeout(snapTimer);
+    card.style.transition = 'none';
+  }, { passive: true });
+
+  overlay.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    e.preventDefault();
+    delta = Math.max(0, e.touches[0].clientY - startY);
+    card.style.transform = `translateY(${delta}px)`;
+  }, { passive: false });
+
+  function onRelease() {
+    if (!dragging) return;
+    dragging = false;
+    const velocity = delta / (Date.now() - startTime);
+    if (delta > 80 || velocity > 0.3) {
+      card.style.transition = EASE;
+      card.style.transform = 'translateY(110%)';
+      setTimeout(() => {
+        card.style.transition = 'none';
+        card.style.transform = '';
+        onDismiss();
+      }, 300);
+    } else {
+      card.style.transition = EASE;
+      card.style.transform = 'translateY(0)';
+      snapTimer = setTimeout(() => {
+        card.style.transform = '';
+        card.style.transition = '';
+      }, 310);
+    }
+  }
+
+  overlay.addEventListener('touchend',    onRelease, { passive: true });
+  overlay.addEventListener('touchcancel', () => {
+    if (!dragging) return;
+    dragging = false;
+    card.style.transform = '';
+    card.style.transition = '';
+  }, { passive: true });
+}
+
 // ── Results swipe ─────────────────────────────────────────────────────────────
 function _initResultsSwipe() {
   const track = document.getElementById('resultPagesTrack');
@@ -677,7 +773,6 @@ function _initResultsSwipe() {
     _updateResultsPage();
   }, { passive: true });
 
-  // Dot click
   document.querySelectorAll('.page-dot').forEach((dot, i) => {
     dot.addEventListener('click', () => { _resultsPage = i; _updateResultsPage(); });
   });
@@ -795,6 +890,25 @@ window.promptSoftResetBalance = function () {
       _updateResetBtn();
       await updateSession({ balance: {} });
       _sessionCh.postMessage({ type: 'SESSION_BALANCE', balance: {} });
+    }
+  );
+};
+
+// ── Clear single test result ──────────────────────────────────────────────────
+window.clearTestResult = function (testId) {
+  _hubWidgetHide();
+  showConfirmBanner(
+    'Borrar medición',
+    `Se eliminará el resultado de ${TESTS[testId]?.label || testId}.`,
+    'Borrar',
+    async () => {
+      _hubWidgetShow();
+      delete _balanceResults[testId];
+      _renderTestCards();
+      _updateSessionChip();
+      _updateResetBtn();
+      await updateSession({ balance: _balanceResults });
+      _sessionCh.postMessage({ type: 'SESSION_BALANCE', balance: _balanceResults });
     }
   );
 };

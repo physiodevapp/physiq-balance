@@ -14,6 +14,7 @@
     [hidden] { display: none !important; }
 
     :root {
+      --header-h: 64px;
       --bg:       #0a0d12;
       --surface:  #111620;
       --surface2: #171e2e;
@@ -55,7 +56,7 @@
       position: fixed;
       top: 0; left: 0; right: 0;
       z-index: 100;
-      height: 64px;
+      height: var(--header-h);
       padding: 0 1.25rem;
       border-bottom: 1px solid var(--border);
       display: flex;
@@ -64,6 +65,11 @@
       background: rgba(10,13,18,0.92);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
+      transition: filter 0.3s ease;
+    }
+    .measuring .app-header {
+      filter: blur(8px);
+      pointer-events: none;
     }
 
     @keyframes hub-back-hint {
@@ -183,7 +189,7 @@
 
     .translate-banner {
       position: fixed;
-      top: 64px;
+      top: var(--header-h);
       left: 0; right: 0;
       z-index: 50;
       background: var(--surface2);
@@ -215,7 +221,7 @@
     /* ── Setup sub-header (sticky bar below main header in setup/testing) ─── */
     .setup-sub-header {
       position: fixed;
-      top: 64px; left: 0; right: 0;
+      top: var(--header-h); left: 0; right: 0;
       z-index: 90;
       height: 44px;
       padding: 0 1rem;
@@ -271,48 +277,25 @@
 
     @media (min-width: 769px) { .translate-banner { display: none; } }
     @media (max-width: 768px) {
-      .app-header { height: 52px; padding: 0 1rem; }
+      :root { --header-h: 52px; }
+      .app-header { padding: 0 1rem; }
       .logo-main, .logo-sub { font-size: 1.2rem; }
-      .translate-banner { top: 52px; }
-      .setup-sub-header { top: 52px; }
-      #view-home { padding-top: 52px; }
-      #view-setup, #view-testing { padding-top: calc(52px + 44px); }
-      #countdown-overlay { top: calc(52px + 44px); }
       .btn-translate .translate-tooltip { display: none; }
     }
     @media (max-width: 480px) {
-      .app-header { height: 48px; }
+      :root { --header-h: 48px; }
       .logo-main, .logo-sub { font-size: 1.1rem; }
-      .translate-banner { top: 48px; }
-      .setup-sub-header { top: 48px; }
-      #view-home { padding-top: 48px; }
-      #view-setup, #view-testing { padding-top: calc(48px + 44px); }
-      #countdown-overlay { top: calc(48px + 44px); }
     }
     @media (max-height: 500px) and (max-width: 900px) {
-      .app-header { height: 44px; }
-      .translate-banner { top: 44px; }
-      .setup-sub-header { top: 44px; }
-      #view-home { padding-top: 44px; }
-      #view-setup, #view-testing { padding-top: calc(44px + 44px); }
-      #countdown-overlay { top: calc(44px + 44px); }
+      :root { --header-h: 44px; }
     }
     @media (max-width: 360px) {
       .logo-sub-word { display: none; }
       .logo-sub-initial { display: inline; }
     }
 
-    /* Translate banner push — only home view needs the push */
-    #view-home { transition: padding-top 0.25s ease; }
-    @media (max-width: 768px) {
-      .translate-banner.visible ~ #view-home { padding-top: calc(52px + 36px); }
-    }
-    @media (max-width: 480px) {
-      .translate-banner.visible ~ #view-home { padding-top: calc(48px + 36px); }
-    }
-    @media (max-height: 500px) and (max-width: 900px) {
-      .translate-banner.visible ~ #view-home { padding-top: calc(44px + 36px); }
-    }
+    /* Translate banner push */
+    .translate-banner.visible ~ #view-home { padding-top: calc(var(--header-h) + 36px); }
 
     /* ── ════════════════════════════════════════════════════ */
     /* ── VIEW: HOME ─────────────────────────────────────── */
@@ -321,7 +304,8 @@
       display: flex;
       flex-direction: column;
       min-height: 100dvh;
-      padding-top: 64px;
+      padding-top: var(--header-h);
+      transition: padding-top 0.25s ease;
     }
 
     .home-body {
@@ -330,6 +314,9 @@
       display: flex;
       flex-direction: column;
       gap: 20px;
+      max-width: 640px;
+      width: 100%;
+      margin: 0 auto;
     }
 
     /* Patient field */
@@ -381,6 +368,7 @@
       transition: background 0.15s, border-color 0.15s;
       position: relative;
       overflow: hidden;
+      animation: fadeUp 0.3s ease both;
     }
 
     .test-card::before {
@@ -394,39 +382,18 @@
 
     .test-card:active { background: var(--surface2); }
 
-    .card-top {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 4px;
-    }
-
-    .card-icon {
-      color: var(--card-accent, var(--accent2));
-      display: flex;
-      align-items: center;
-    }
-
-    .card-score {
-      font-family: 'DM Mono', monospace;
-      font-size: 1.15rem;
-      font-weight: 500;
-      color: var(--accent2);
-    }
-
-    .card-score small { font-size: 0.65rem; color: var(--text2); }
-
-    .card-score-empty {
-      font-family: 'DM Mono', monospace;
-      font-size: 1rem;
-      color: var(--border);
-    }
-
     .card-label {
       font-size: 0.88rem;
       font-weight: 600;
       color: var(--text);
       line-height: 1.2;
+    }
+
+    .card-sub-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
     }
 
     .card-sublabel {
@@ -437,7 +404,7 @@
     .diff-dots {
       display: flex;
       gap: 3px;
-      margin-top: 2px;
+      flex-shrink: 0;
     }
 
     .diff-dot {
@@ -451,6 +418,50 @@
       background: var(--card-accent, var(--accent2));
     }
 
+    .card-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 2px;
+    }
+
+    .card-score {
+      font-family: 'DM Mono', monospace;
+      font-size: 1rem;
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    .card-score small { font-size: 0.65rem; color: var(--text2); }
+
+    .card-score-empty {
+      font-family: 'DM Mono', monospace;
+      font-size: 1rem;
+      color: var(--border);
+      line-height: 1;
+    }
+
+    .card-score-empty small { font-size: 0.65rem; }
+
+    .btn-clear {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text2);
+      border-radius: 6px;
+      padding: 4px 7px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      flex-shrink: 0;
+      line-height: 1;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-clear:hover, .btn-clear:active {
+      border-color: rgba(239,68,68,0.5);
+      color: var(--danger);
+    }
+
     /* ── ════════════════════════════════════════════════════ */
     /* ── VIEW: SETUP ─────────────────────────────────────── */
     /* ── ════════════════════════════════════════════════════ */
@@ -458,7 +469,7 @@
       display: flex;
       flex-direction: column;
       min-height: 100dvh;
-      padding-top: calc(64px + 44px);
+      padding-top: calc(var(--header-h) + 44px);
     }
 
     .setup-body {
@@ -546,20 +557,6 @@
     .start-btn:disabled { opacity: 0.4; }
     .start-btn:not(:disabled):active { transform: scale(0.97); }
 
-    /* ── Countdown overlay ───────────────────────────────── */
-    #countdown-overlay {
-      position: fixed;
-      top: calc(64px + 44px);
-      left: 0; right: 0; bottom: 0;
-      background: var(--bg);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      z-index: 60;
-    }
-
     .cd-label {
       font-size: 1rem;
       color: var(--text2);
@@ -577,26 +574,6 @@
       0%   { transform: scale(1.3); opacity: 0; }
       40%  { transform: scale(1);   opacity: 1; }
       100% { transform: scale(1);   opacity: 1; }
-    }
-
-    /* ── ════════════════════════════════════════════════════ */
-    /* ── VIEW: TESTING ───────────────────────────────────── */
-    /* ── ════════════════════════════════════════════════════ */
-    #view-testing {
-      display: flex;
-      flex-direction: column;
-      min-height: 100dvh;
-      padding-top: calc(64px + 44px);
-    }
-
-    .testing-body {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-      padding: 32px 20px;
     }
 
     .timer-display {
@@ -663,7 +640,7 @@
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.75);
-      z-index: 100;
+      z-index: 110;
       display: flex;
       align-items: flex-end;
       justify-content: center;
@@ -690,6 +667,7 @@
       background: var(--surface2);
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
+      touch-action: none;
     }
 
     .trophy-wrap {
@@ -1068,6 +1046,55 @@
       font-weight: 500;
       margin-top: 4px;
     }
+
+    /* ── OVERLAY: MEASUREMENT SHEET (countdown + testing) ──────────── */
+    @keyframes sheet-in {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+
+    #measurement-sheet {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 95;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .measurement-card {
+      background: var(--surface);
+      border-radius: 24px 24px 0 0;
+      width: 100%;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 24px calc(48px + env(safe-area-inset-bottom));
+      gap: 24px;
+      animation: sheet-in 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .sheet-handle {
+      width: 40px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border);
+      align-self: center;
+      flex-shrink: 0;
+      touch-action: none;
+    }
+
+    .ms-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      width: 100%;
+    }
   </style>
 </head>
 <body>
@@ -1166,41 +1193,6 @@
       INICIAR TEST
     </button>
   </div>
-
-  <!-- Countdown overlay (positioned inside setup view) -->
-  <div id="countdown-overlay" hidden>
-    <p class="cd-label">Prepárate...</p>
-    <div id="countdownNum" class="cd-num">3</div>
-    <p class="duration-hint" style="position:absolute;bottom:32px;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-      </svg>
-      <span id="cdDuration">Duración: 30 segundos</span>
-    </p>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════════════════════════ -->
-<!-- VIEW: TESTING                                                  -->
-<!-- ══════════════════════════════════════════════════════════════ -->
-<div id="view-testing" hidden>
-  <div class="testing-body">
-    <div class="timer-display" id="timerDisplay">30</div>
-
-    <div class="testing-status">
-      <p class="testing-label">Medición en curso...</p>
-      <p class="testing-hint">No muevas el teléfono mientras mantienes el equilibrio.</p>
-    </div>
-
-    <div class="spinner"></div>
-
-    <button id="stopBtn" class="stop-btn" onclick="stopTest()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-        <rect x="4" y="4" width="16" height="16" rx="2"/>
-      </svg>
-      DESCARTAR TEST
-    </button>
-  </div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════ -->
@@ -1208,6 +1200,7 @@
 <!-- ══════════════════════════════════════════════════════════════ -->
 <div id="results-overlay" hidden>
   <div class="results-card">
+    <div class="sheet-handle" style="margin-top:12px;"></div>
 
     <!-- Fixed header -->
     <div class="results-header">
@@ -1352,6 +1345,44 @@
     <div class="results-actions">
       <button class="btn-discard" onclick="discardResult()">Descartar</button>
       <button class="btn-save" onclick="saveResult()">Guardar Resultados</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- MEASUREMENT SHEET (countdown + testing)                        -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div id="measurement-sheet" hidden>
+  <div class="measurement-card">
+    <div class="sheet-handle"></div>
+
+    <!-- Countdown section -->
+    <div id="msCountdown" class="ms-section">
+      <p class="cd-label">Prepárate...</p>
+      <div id="countdownNum" class="cd-num">3</div>
+      <p class="duration-hint">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <span id="cdDuration">Duración: 30 segundos</span>
+      </p>
+    </div>
+
+    <!-- Testing section -->
+    <div id="msTesting" class="ms-section" hidden>
+      <div class="timer-display" id="timerDisplay">30</div>
+      <div class="testing-status">
+        <p class="testing-label">Medición en curso...</p>
+        <p class="testing-hint">No muevas el teléfono mientras mantienes el equilibrio.</p>
+      </div>
+      <div class="spinner"></div>
+      <button id="stopBtn" class="stop-btn" onclick="stopTest()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="4" y="4" width="16" height="16" rx="2"/>
+        </svg>
+        DESCARTAR TEST
+      </button>
     </div>
 
   </div>
