@@ -198,6 +198,16 @@ function _handleBC(e) {
     const inp = document.getElementById('patientInput');
     if (inp) inp.value = _patient;
     _updateSessionChip();
+    return;
+  }
+  if (msg.type === 'SESSION_BALANCE') {
+    _balanceResults = (msg.balance && Object.keys(msg.balance).length > 0)
+      ? { ...msg.balance }
+      : {};
+    _renderTestCards();
+    _updateSessionChip();
+    _updateResetBtn();
+    return;
   }
   if (msg.type === 'SESSION_CLEAR') {
     _softReset();
