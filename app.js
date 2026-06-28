@@ -177,13 +177,11 @@ function _onPatientInput(e) {
 
 async function _persistPatient() {
   _sessionDate = _todayStr();
+  if (_patient) _sessionCh.postMessage({ type: 'SESSION_PATIENT', patient: _patient });
+  if (!_patient) return;
   const gen = _sessionGen;
   const session = await writeSession({ patient: _patient, date: _sessionDate });
-  if (_sessionGen !== gen) {
-    await clearSession();
-    return;
-  }
-  _sessionCh.postMessage({ type: 'SESSION_PATIENT', patient: _patient });
+  if (_sessionGen !== gen) { await clearSession(); }
 }
 
 function _todayStr() {
@@ -211,9 +209,7 @@ function _handleBC(e) {
     _updateResetBtn();
     return;
   }
-  if (msg.type === 'SESSION_CLEAR') {
-    _softReset();
-  }
+  if (msg.type === 'SESSION_CLEAR') { _softReset(); clearSession(); }
 }
 
 // ── Header state ─────────────────────────────────────────────────────────────
@@ -812,14 +808,14 @@ window.saveResult = async function () {
     patch.date    = _sessionDate;
   }
 
-  const gen = _sessionGen;
-  if (_patient || Object.keys(_balanceResults).length > 0) {
+  _sessionCh.postMessage({ type: 'SESSION_BALANCE', balance: _balanceResults });
+  if (_patient) {
     _sessionCleared = false;
+    const gen = _sessionGen;
     const session = await writeSession(patch);
     if (_sessionGen !== gen) { await clearSession(); }
     else if (session) {
-      _sessionCh.postMessage({ type: 'SESSION_BALANCE', balance: _balanceResults });
-      if (_patient) _sessionCh.postMessage({ type: 'SESSION_PATIENT', patient: _patient });
+      _sessionCh.postMessage({ type: 'SESSION_PATIENT', patient: _patient });
     }
   }
 
