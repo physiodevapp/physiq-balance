@@ -78,6 +78,21 @@ let _swipeStartX    = 0;
 
 const _sessionCh = new BroadcastChannel('physiq-session');
 
+// ── Hub history helpers ───────────────────────────────────────────────────────
+function _rebuildHubHistory() {
+  history.replaceState({ view: 'hub-exit' }, '');
+  history.pushState({ view: 'home' }, '');
+  if (_phase !== 'home') history.pushState({ view: _phase }, '');
+}
+
+let _firstVisible = true;
+window.addEventListener('message', e => {
+  if (e.data?.type === 'PHYSIQ_SAT_VISIBLE' && document.body.classList.contains('in-hub')) {
+    if (_firstVisible) { _firstVisible = false; return; }
+    _rebuildHubHistory();
+  }
+});
+
 // ── DOM refs (set after DOMContentLoaded) ────────────────────────────────────
 let $viewHome, $viewSetup, $measurementSheet, $msCountdown, $msTesting, $resultsOverlay;
 let _$headerLogo, _$headerRight, _$setupSubHeader;
@@ -127,7 +142,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   _renderTestCards();
   _updateSessionChip();
   _showView('home');
-  history.replaceState({ view: 'home' }, '');
+  if (document.body.classList.contains('in-hub')) {
+    history.replaceState({ view: 'hub-exit' }, '');
+    history.pushState({ view: 'home' }, '');
+  } else {
+    history.replaceState({ view: 'home' }, '');
+  }
 
   // BroadcastChannel
   _sessionCh.onmessage = _handleBC;
@@ -266,6 +286,10 @@ function _animateCountdownToTesting() {
 }
 
 window.addEventListener('popstate', (e) => {
+  if (e.state?.view === 'hub-exit' && document.body.classList.contains('in-hub')) {
+    window.parent.postMessage({ type: 'PHYSIQ_GO_HOME' }, '*');
+    return;
+  }
   if (_phase === 'setup') {
     _showView('home');
   } else if (_phase === 'countdown' || _phase === 'testing') {
