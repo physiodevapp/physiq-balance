@@ -172,6 +172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (_phase === 'testing') stopTest(); else goBack();
   });
   _initSwipeDismiss('results-overlay', '.results-card', 200, discardResult);
+  _setupSessionPanelDrag();
 });
 
 // ── Session helpers ───────────────────────────────────────────────────────────
@@ -187,6 +188,9 @@ function _updateSessionChip() {
   if (!btn) return;
   btn.classList.toggle('active', !!_patient);
   _sessionLabel = _patient ? `${_patient} · ${_sessionDate || _todayStr()}` : '';
+  const panelTitle = document.getElementById('sessionPanelTitle');
+  if (panelTitle) panelTitle.textContent = _sessionLabel || 'Sin sesión activa';
+  document.getElementById('sessionPanel')?.classList.toggle('has-session', !!_patient);
 }
 
 let _patientDebounce = null;
@@ -881,10 +885,89 @@ function _focusPatientInput() {
     _updateHeader('home');
     _hubWidgetShow();
   }
-  const inp = document.getElementById('patientInput');
-  if (!inp) return;
-  inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  setTimeout(() => inp.focus(), 300);
+  _openSessionSheet();
+}
+
+function _openSessionSheet() {
+  const overlay = document.getElementById('sessionPanelOverlay');
+  if (!overlay || overlay.classList.contains('open')) return;
+  overlay.classList.add('open');
+  _hubWidgetHide();
+  setTimeout(() => document.getElementById('patientInput')?.focus(), 60);
+}
+
+window.closeSessionPanel = function closeSessionPanel() {
+  const panel = document.getElementById('sessionPanel');
+  const overlay = document.getElementById('sessionPanelOverlay');
+  const wasOpen = overlay?.classList.contains('open');
+  overlay?.classList.remove('open');
+  if (wasOpen) _hubWidgetShow();
+  if (panel) { panel.style.transition = ''; panel.style.transform = ''; }
+};
+
+function _setupSessionPanelDrag() {
+  const panel = document.getElementById('sessionPanel');
+  if (!panel) return;
+  const EASE = 'transform 0.3s cubic-bezier(0.32,0.72,0,1)';
+  let startY = 0, startTime = 0, dragging = false, delta = 0, snapTimer = null;
+  let vvHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      const newHeight = window.visualViewport.height;
+      if (dragging) startY += newHeight - vvHeight;
+      vvHeight = newHeight;
+    });
+  }
+
+  panel.addEventListener('touchstart', e => {
+    if (window.innerWidth > 768) return;
+    if (e.touches[0].clientY - panel.getBoundingClientRect().top > 72) return;
+    if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+    startY = e.touches[0].clientY;
+    startTime = Date.now();
+    delta = 0;
+    dragging = true;
+    clearTimeout(snapTimer);
+    panel.style.transition = 'none';
+  }, { passive: true });
+
+  panel.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    delta = Math.max(0, e.touches[0].clientY - startY);
+    panel.style.transform = delta > 0 ? `translateY(${delta}px)` : 'translateY(0)';
+  }, { passive: true });
+
+  function onRelease() {
+    if (!dragging) return;
+    dragging = false;
+    const velocity = delta / (Date.now() - startTime);
+    if (delta > 80 || velocity > 0.3) {
+      panel.style.transition = EASE;
+      panel.style.transform = 'translateY(110%)';
+      setTimeout(() => {
+        panel.style.transition = 'none';
+        closeSessionPanel();
+        panel.style.transform = '';
+        panel.style.transition = '';
+      }, 300);
+    } else {
+      panel.style.transition = EASE;
+      panel.style.transform = 'translateY(0)';
+      snapTimer = setTimeout(() => {
+        panel.style.transform = '';
+        panel.style.transition = '';
+      }, 310);
+    }
+  }
+
+  panel.addEventListener('touchend', onRelease, { passive: true });
+  panel.addEventListener('touchcancel', () => {
+    if (!dragging) return;
+    dragging = false;
+    panel.style.transform = '';
+    panel.style.transition = '';
+  }, { passive: true });
 }
 
 function _showSessionInfoBanner() {
@@ -917,6 +1000,7 @@ function _showSessionInfoBanner() {
 }
 
 function _closeAllOverlays() {
+  closeSessionPanel();
   document.getElementById('confirmBanner')?.setAttribute('hidden', '');
   ['sessionInfoBanner'].forEach(id => document.getElementById(id)?.remove());
   hideMetricInfo();
@@ -925,6 +1009,7 @@ function _closeAllOverlays() {
 
 // ── Session clear ─────────────────────────────────────────────────────────────
 window.promptClearSession = function () {
+  closeSessionPanel();
   hideMetricInfo();
   _hubWidgetHide();
   showConfirmBanner(
