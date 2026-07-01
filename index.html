@@ -109,15 +109,17 @@
     .in-hub .logo-main:hover { opacity: 0.75; }
 
     .session-btn {
-      display: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       background: none;
       border: none;
       cursor: pointer;
-      color: #22d3ee;
+      color: var(--text3, #4a5568);
       padding: 6px;
       flex-shrink: 0;
     }
-    .session-btn.active { display: flex; align-items: center; justify-content: center; }
+    .session-btn.active { color: #22d3ee; }
 
     .icon-btn {
       background: none;
