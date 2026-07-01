@@ -91,6 +91,9 @@ window.addEventListener('message', e => {
     if (_firstVisible) { _firstVisible = false; return; }
     _rebuildHubHistory();
   }
+  if (e.data?.type === 'PHYSIQ_SAT_HIDDEN') {
+    _closeAllOverlays();
+  }
 });
 
 // ── DOM refs (set after DOMContentLoaded) ────────────────────────────────────
@@ -860,6 +863,65 @@ window.saveResult = async function () {
   _showView('home');
   _hubWidgetShow();
 };
+
+// ── Session panel ─────────────────────────────────────────────────────────────
+function toggleSessionPanel() {
+  if (_patient) {
+    _showSessionInfoBanner();
+  } else {
+    _focusPatientInput();
+  }
+}
+window.toggleSessionPanel = toggleSessionPanel;
+
+function _focusPatientInput() {
+  if (_phase === 'results') {
+    if ($resultsOverlay) $resultsOverlay.hidden = true;
+    _phase = 'home';
+    _updateHeader('home');
+    _hubWidgetShow();
+  }
+  const inp = document.getElementById('patientInput');
+  if (!inp) return;
+  inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => inp.focus(), 300);
+}
+
+function _showSessionInfoBanner() {
+  const existing = document.getElementById('sessionInfoBanner');
+  if (existing) existing.remove();
+  hideMetricInfo();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'sessionInfoBanner';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:200;display:flex;align-items:center;justify-content:center;animation:fadeUp 0.2s ease;';
+
+  const _ic = d => `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+  overlay.innerHTML = `
+    <div class="confirm-sheet">
+      <div class="confirm-title">Sesión en curso</div>
+      <div class="confirm-text">${_sessionLabel}</div>
+      <div class="confirm-actions" style="gap:0.5rem;">
+        <button id="sib-cancel" class="confirm-cancel" style="height:auto;padding:9px 6px;font-size:0.8rem;display:flex;align-items:center;justify-content:center;gap:5px;border-color:transparent;color:var(--text3);">${_ic('M2 2l9 9M11 2L2 11')} Cancelar</button>
+        <button id="sib-edit" style="flex:1;height:auto;padding:9px 6px;border-radius:22px;background:#22d3ee;color:#0a0d12;font-size:0.8rem;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">${_ic('M8.5 2.5l2 2-6 6H3v-2.5l6-6z')} Editar</button>
+        <button id="sib-delete" style="flex:1;height:auto;padding:9px 6px;border-radius:22px;background:var(--surface2);color:var(--danger);font-size:0.8rem;font-weight:500;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">${_ic('M2 4h9M5 4V2h3v2M3.5 4l.5 7h5l.5-7')} Borrar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  _hubWidgetHide();
+
+  const dismiss = () => { overlay.remove(); _hubWidgetShow(); };
+  document.getElementById('sib-cancel').onclick = dismiss;
+  document.getElementById('sib-edit').onclick   = () => { dismiss(); _focusPatientInput(); };
+  document.getElementById('sib-delete').onclick  = () => { dismiss(); promptClearSession(); };
+}
+
+function _closeAllOverlays() {
+  document.getElementById('confirmBanner')?.setAttribute('hidden', '');
+  ['sessionInfoBanner'].forEach(id => document.getElementById(id)?.remove());
+  hideMetricInfo();
+  _hubWidgetShow();
+}
 
 // ── Session clear ─────────────────────────────────────────────────────────────
 window.promptClearSession = function () {
