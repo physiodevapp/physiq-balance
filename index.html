@@ -1098,6 +1098,24 @@
       gap: 20px;
       width: 100%;
     }
+
+    /* ── Session panel overlay ──────────────────────────────── */
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .session-panel-overlay { display: none; position: fixed; inset: 0; z-index: 300; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+    .session-panel-overlay.open { display: flex; animation: fadeUp 0.2s ease; }
+    .session-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.8rem; max-width: 420px; width: 90%; }
+    .session-panel-handle { display: none; width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 1.2rem; }
+    .session-panel-title { font-size: 0.95rem; font-weight: 600; color: var(--text); margin-bottom: 1.2rem; }
+    .session-panel-clear { display: none; width: 100%; margin-top: 1.2rem; padding: 10px; background: transparent; border: 1px solid var(--danger); color: var(--danger); border-radius: 8px; font-size: 0.85rem; cursor: pointer; }
+    .session-panel.has-session .session-panel-clear { display: block; }
+    .session-panel-clear:hover { background: rgba(239,68,68,0.08); }
+    @media (max-width: 768px) {
+      .session-panel-overlay { align-items: flex-end; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+      .session-panel-overlay.open { animation: none; }
+      .session-panel-overlay.open .session-panel { animation: slideUp 0.3s cubic-bezier(0.32,0.72,0,1); }
+      .session-panel { max-width: 100%; width: 100%; border-radius: 16px 16px 0 0; border: none; border-top: 1px solid var(--border); padding: 12px 1.4rem 32px; touch-action: none; }
+      .session-panel-handle { display: block; }
+    }
   </style>
 </head>
 <body>
@@ -1142,14 +1160,6 @@
 <!-- ══════════════════════════════════════════════════════════════ -->
 <div id="view-home">
   <div class="home-body">
-    <!-- Patient name -->
-    <div class="info-row">
-      <div class="field">
-        <label class="field-label" for="patientInput">Paciente</label>
-        <input class="field-input" id="patientInput" type="text" placeholder="Nombre (opcional)" autocomplete="off" spellcheck="false">
-      </div>
-    </div>
-
     <!-- Sensor warning -->
     <div id="sensor-warning" class="sensor-warning" hidden>
       Este dispositivo no dispone de acelerómetro. La medición de equilibrio no estará disponible.
@@ -1413,6 +1423,19 @@
     <p class="metric-info-title" id="metricInfoTitle"></p>
     <p class="metric-info-body"  id="metricInfoBody"></p>
     <button class="metric-info-close" onclick="hideMetricInfo()">Entendido</button>
+  </div>
+</div>
+
+<!-- ── Session panel overlay ──────────────────────────────────────────────── -->
+<div class="session-panel-overlay" id="sessionPanelOverlay" onclick="closeSessionPanel()">
+  <div class="session-panel" id="sessionPanel" onclick="event.stopPropagation()">
+    <div class="session-panel-handle"></div>
+    <div class="session-panel-title" id="sessionPanelTitle">Sin sesión activa</div>
+    <div class="field">
+      <label class="field-label" for="patientInput">Paciente</label>
+      <input class="field-input" id="patientInput" type="text" placeholder="Nombre (opcional)" autocomplete="off" spellcheck="false">
+    </div>
+    <button class="session-panel-clear" onclick="promptClearSession()">Borrar sesión</button>
   </div>
 </div>
 
