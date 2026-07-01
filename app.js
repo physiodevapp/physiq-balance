@@ -729,11 +729,21 @@ function _initSwipeDismiss(overlayId, cardSel, hitZone, onDismiss) {
 
   let startY = 0, startTime = 0, dragging = false, delta = 0, snapTimer = null;
   const EASE = 'transform 0.3s cubic-bezier(0.32,0.72,0,1)';
+  let vvHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      const newHeight = window.visualViewport.height;
+      if (dragging) startY += newHeight - vvHeight;
+      vvHeight = newHeight;
+    });
+  }
 
   overlay.addEventListener('touchstart', e => {
     const rect = card.getBoundingClientRect();
     const y    = e.touches[0].clientY;
     if (y < rect.top || y > rect.top + hitZone) return;
+    if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
     startY = y;
     startTime = Date.now();
     delta = 0;
@@ -853,6 +863,7 @@ window.saveResult = async function () {
 
 // ── Session clear ─────────────────────────────────────────────────────────────
 window.promptClearSession = function () {
+  hideMetricInfo();
   _hubWidgetHide();
   showConfirmBanner(
     'Sesión en curso',
