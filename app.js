@@ -985,9 +985,9 @@ function _showSessionInfoBanner() {
       <div class="confirm-title">Sesión en curso</div>
       <div class="confirm-text">${_sessionLabel}</div>
       <div class="confirm-actions" style="gap:0.5rem;">
-        <button id="sib-cancel" class="confirm-cancel" style="height:auto;padding:9px 6px;font-size:0.8rem;display:flex;align-items:center;justify-content:center;gap:5px;border-color:transparent;color:var(--text3);">${_ic('M2 2l9 9M11 2L2 11')} Cancelar</button>
-        <button id="sib-edit" style="flex:1;height:auto;padding:9px 6px;border-radius:22px;background:#22d3ee;color:#0a0d12;font-size:0.8rem;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">${_ic('M8.5 2.5l2 2-6 6H3v-2.5l6-6z')} Editar</button>
-        <button id="sib-delete" style="flex:1;height:auto;padding:9px 6px;border-radius:22px;background:var(--surface2);color:var(--danger);font-size:0.8rem;font-weight:500;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">${_ic('M2 4h9M5 4V2h3v2M3.5 4l.5 7h5l.5-7')} Borrar</button>
+        <button id="sib-cancel" class="confirm-cancel" style="height:auto;padding:9px 6px;font-size:0.8rem;display:flex;align-items:center;justify-content:center;gap:5px;border-radius:10px;background:transparent;border-color:transparent;color:var(--text3);">${_ic('M2 2l9 9M11 2L2 11')} Cancelar</button>
+        <button id="sib-edit" style="flex:1;height:auto;padding:9px 6px;border-radius:10px;background:#22d3ee;color:#0a0d12;font-size:0.8rem;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">${_ic('M8.5 2.5l2 2-6 6H3v-2.5l6-6z')} Editar</button>
+        <button id="sib-delete" style="flex:1;height:auto;padding:9px 6px;border-radius:10px;background:transparent;color:var(--danger);font-size:0.8rem;font-weight:500;border:1px solid var(--danger);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">${_ic('M2 4h9M5 4V2h3v2M3.5 4l.5 7h5l.5-7')} Borrar</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
