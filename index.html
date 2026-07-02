@@ -1101,19 +1101,27 @@
 
     /* ── Session panel overlay ──────────────────────────────── */
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-    .session-panel-overlay { display: none; position: fixed; inset: 0; z-index: 300; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+    .session-panel-overlay { display: none; position: fixed; inset: 0; z-index: 999; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
     .session-panel-overlay.open { display: flex; animation: fadeUp 0.2s ease; }
-    .session-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.8rem; max-width: 420px; width: 90%; }
-    .session-panel-handle { display: none; width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 1.2rem; }
-    .session-panel-title { font-size: 0.95rem; font-weight: 600; color: var(--text); margin-bottom: 1.2rem; }
+    .session-panel { background: var(--surface); border: 1px solid var(--border2); border-radius: 16px; padding: 1.8rem; max-width: 420px; width: 90%; }
+    .session-panel-handle { display: none; width: 36px; height: 4px; background: var(--border2); border-radius: 2px; margin: 0 auto 14px; touch-action: none; }
+    .session-panel-title { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .session-panel.has-session .session-panel-title { color: #22d3ee; }
+    .session-panel .field { display: flex; flex-direction: column; gap: 4px; }
     .session-panel-clear { display: none; background: none; border: 1px solid var(--danger); border-radius: 8px; padding: 8px; cursor: pointer; color: var(--danger); flex-shrink: 0; align-items: center; justify-content: center; align-self: stretch; transition: opacity 0.2s; }
     .session-panel.has-session .session-panel-clear { display: flex; }
     .session-panel-clear:hover { opacity: 0.7; }
+    .confirm-box-text { font-size: 0.83rem; color: var(--text2); line-height: 1.5; }
+    .confirm-box-btns { display: flex; gap: 0.75rem; justify-content: flex-end; }
+    .confirm-btn-cancel { display: inline-flex; align-items: center; gap: 6px; background: transparent; border: 1px solid var(--border); color: var(--text3); border-radius: 8px; padding: 9px 16px; font-family: 'DM Mono', monospace; font-size: 12px; cursor: pointer; transition: border-color 0.2s, color 0.2s; }
+    .confirm-btn-cancel:hover { border-color: var(--text2); color: var(--text2); }
+    .confirm-btn-ok { display: inline-flex; align-items: center; gap: 6px; background: #22d3ee; border: none; color: #0a0d12; border-radius: 8px; padding: 9px 18px; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+    .confirm-btn-ok:hover { background: #06b6d4; }
     @media (max-width: 768px) {
       .session-panel-overlay { align-items: flex-end; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
       .session-panel-overlay.open { animation: none; }
       .session-panel-overlay.open .session-panel { animation: slideUp 0.3s cubic-bezier(0.32,0.72,0,1); }
-      .session-panel { max-width: 100%; width: 100%; border-radius: 16px 16px 0 0; border: none; border-top: 1px solid var(--border); padding: 12px 1.4rem 32px; touch-action: none; }
+      .session-panel { max-width: 100%; width: 100%; border-radius: 16px 16px 0 0; border: none; border-top: 1px solid var(--border2); padding: 12px 1.4rem 32px; touch-action: none; }
       .session-panel-handle { display: block; }
     }
   </style>
