@@ -914,11 +914,11 @@ function _showSessionState(st) {
       <div class="session-panel-title">${label || 'Sin sesión activa'}</div>
       <div class="confirm-box-text" style="margin:12px 0 0;">¿Borrar y empezar de nuevo?</div>
       <div class="confirm-box-btns" style="margin-top:1rem;">
-        <button class="confirm-btn-cancel" id="confirmCancel">Cancelar</button>
-        <button class="confirm-btn-ok" id="confirmAction">Borrar sesión</button>
+        <button class="confirm-btn-cancel" id="spCancelBtn">Cancelar</button>
+        <button class="confirm-btn-ok" id="spOkBtn">Borrar sesión</button>
       </div>`;
-    panel.querySelector('#confirmCancel').onclick = () => _showSessionState('edit');
-    panel.querySelector('#confirmAction').onclick = () => {
+    panel.querySelector('#spCancelBtn').onclick = () => _showSessionState('edit');
+    panel.querySelector('#spOkBtn').onclick = () => {
       closeSessionPanel();
       _softReset(true);
     };
