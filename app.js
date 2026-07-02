@@ -870,30 +870,59 @@ window.saveResult = async function () {
 
 // ── Session panel ─────────────────────────────────────────────────────────────
 function toggleSessionPanel() {
-  if (_patient) {
-    _showSessionInfoBanner();
-  } else {
-    _focusPatientInput();
-  }
+  const overlay = document.getElementById('sessionPanelOverlay');
+  if (!overlay) return;
+  if (overlay.classList.contains('open')) { closeSessionPanel(); return; }
+  _showSessionState('edit');
+  overlay.classList.add('open');
+  _hubWidgetHide();
 }
 window.toggleSessionPanel = toggleSessionPanel;
 
-function _focusPatientInput() {
-  if (_phase === 'results') {
-    if ($resultsOverlay) $resultsOverlay.hidden = true;
-    _phase = 'home';
-    _updateHeader('home');
-    _hubWidgetShow();
-  }
-  _openSessionSheet();
-}
+function _showSessionState(st) {
+  const panel = document.getElementById('sessionPanel');
+  if (!panel) return;
+  const hasSession = !!_patient;
+  const label = _sessionLabel || (hasSession
+    ? `${_patient} · ${_sessionDate || _todayStr()}` : '');
+  panel.classList.toggle('has-session', hasSession);
 
-function _openSessionSheet() {
-  const overlay = document.getElementById('sessionPanelOverlay');
-  if (!overlay || overlay.classList.contains('open')) return;
-  overlay.classList.add('open');
-  _hubWidgetHide();
-  setTimeout(() => document.getElementById('patientInput')?.focus(), 60);
+  if (st === 'edit') {
+    panel.innerHTML = `
+      <div class="session-panel-handle"></div>
+      <div class="session-panel-title" id="sessionPanelTitle">${label || 'Sin sesión activa'}</div>
+      <div class="field">
+        <label class="field-label">Paciente</label>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input class="field-input" type="text" id="patientInput" style="flex:1;"
+                 placeholder="Nombre (opcional)" autocomplete="off" spellcheck="false">
+          <button class="session-panel-clear" id="sessionPanelClear" title="Borrar sesión">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h9M5 4V2h3v2M3.5 4l.5 7h5l.5-7"/></svg>
+          </button>
+        </div>
+      </div>`;
+    const input = panel.querySelector('#patientInput');
+    input.value = _patient || '';
+    input.addEventListener('input', _onPatientInput);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') closeSessionPanel(); });
+    panel.querySelector('#sessionPanelClear').onclick = () => _showSessionState('delete');
+    setTimeout(() => input.focus(), 60);
+
+  } else if (st === 'delete') {
+    panel.innerHTML = `
+      <div class="session-panel-handle"></div>
+      <div class="session-panel-title">${label || 'Sin sesión activa'}</div>
+      <div class="confirm-text" style="margin:12px 0 0;">¿Borrar y empezar de nuevo?</div>
+      <div class="confirm-actions" style="margin-top:1rem;">
+        <button class="confirm-cancel" id="confirmCancel">Cancelar</button>
+        <button id="confirmAction">Borrar sesión</button>
+      </div>`;
+    panel.querySelector('#confirmCancel').onclick = () => _showSessionState('edit');
+    panel.querySelector('#confirmAction').onclick = () => {
+      closeSessionPanel();
+      _softReset(true);
+    };
+  }
 }
 
 window.closeSessionPanel = function closeSessionPanel() {
@@ -970,57 +999,21 @@ function _setupSessionPanelDrag() {
   }, { passive: true });
 }
 
-function _showSessionInfoBanner() {
-  const existing = document.getElementById('sessionInfoBanner');
-  if (existing) existing.remove();
-  hideMetricInfo();
-
-  const overlay = document.createElement('div');
-  overlay.id = 'sessionInfoBanner';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:200;display:flex;align-items:center;justify-content:center;animation:fadeUp 0.2s ease;';
-
-  const _ic = d => `<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
-  overlay.innerHTML = `
-    <div class="confirm-sheet">
-      <div class="confirm-title">Sesión en curso</div>
-      <div class="confirm-text">${_sessionLabel}</div>
-      <div class="confirm-actions" style="gap:0.5rem;">
-        <button id="sib-cancel" class="confirm-cancel" style="height:auto;padding:9px 6px;font-size:0.8rem;display:flex;align-items:center;justify-content:center;gap:5px;border-radius:10px;background:transparent;border-color:transparent;color:var(--text3);">${_ic('M2 2l9 9M11 2L2 11')} Cancelar</button>
-        <button id="sib-edit" style="flex:1;height:auto;padding:9px 6px;border-radius:10px;background:#22d3ee;color:#0a0d12;font-size:0.8rem;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">${_ic('M8.5 2.5l2 2-6 6H3v-2.5l6-6z')} Editar</button>
-        <button id="sib-delete" style="flex:1;height:auto;padding:9px 6px;border-radius:10px;background:transparent;color:var(--danger);font-size:0.8rem;font-weight:500;border:1px solid var(--danger);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">${_ic('M2 4h9M5 4V2h3v2M3.5 4l.5 7h5l.5-7')} Borrar</button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-  _hubWidgetHide();
-
-  const dismiss = () => { overlay.remove(); _hubWidgetShow(); };
-  document.getElementById('sib-cancel').onclick = dismiss;
-  document.getElementById('sib-edit').onclick   = () => { dismiss(); _focusPatientInput(); };
-  document.getElementById('sib-delete').onclick  = () => { dismiss(); promptClearSession(); };
-}
-
 function _closeAllOverlays() {
   closeSessionPanel();
   document.getElementById('confirmBanner')?.setAttribute('hidden', '');
-  ['sessionInfoBanner'].forEach(id => document.getElementById(id)?.remove());
   hideMetricInfo();
   _hubWidgetShow();
 }
 
 // ── Session clear ─────────────────────────────────────────────────────────────
 window.promptClearSession = function () {
-  closeSessionPanel();
-  hideMetricInfo();
-  _hubWidgetHide();
-  showConfirmBanner(
-    'Sesión en curso',
-    `${_sessionLabel}<br>¿Borrar y empezar de nuevo?`,
-    'Borrar sesión',
-    async () => {
-      _hubWidgetShow();
-      await _softReset(true);
-    }
-  );
+  _showSessionState('delete');
+  const overlay = document.getElementById('sessionPanelOverlay');
+  if (overlay && !overlay.classList.contains('open')) {
+    overlay.classList.add('open');
+    _hubWidgetHide();
+  }
 };
 
 async function _softReset(fullClear = false) {
